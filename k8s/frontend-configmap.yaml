@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: days-of-art
+data:
+  NEXT_PUBLIC_API_BASE_URL: http://backend-service:5000
