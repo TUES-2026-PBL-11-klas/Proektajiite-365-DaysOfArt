@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recalculate-recommendations
+  namespace: days-of-art
+spec:
+  schedule: "30 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: recalculate-recommendations
+              image: ghcr.io/example/365-days-of-art-backend:latest
+              imagePullPolicy: IfNotPresent
+              workingDir: /app
+              command: ["flask", "--app", "run.py", "recalculate-recommendations"]
+              envFrom:
+                - configMapRef:
+                    name: backend-config
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: database-url
