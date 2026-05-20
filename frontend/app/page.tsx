@@ -18,7 +18,32 @@ type DailyPrompt = {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:5000";
 
-const colors = ["#111827", "#dc2626", "#2563eb", "#16a34a", "#f59e0b", "#ffffff"];
+const colors = [
+  "#111827",
+  "#52525b",
+  "#ffffff",
+  "#7f1d1d",
+  "#ef4444",
+  "#fb7185",
+  "#f97316",
+  "#f59e0b",
+  "#facc15",
+  "#84cc16",
+  "#16a34a",
+  "#14b8a6",
+  "#06b6d4",
+  "#2563eb",
+  "#4f46e5",
+  "#7c3aed",
+  "#a855f7",
+  "#d946ef",
+  "#ec4899",
+  "#f9a8d4",
+  "#92400e",
+  "#d97706",
+  "#fde68a",
+  "#f5f5dc",
+];
 const brushSizes = [4, 8, 14, 22];
 
 export default function Home() {
