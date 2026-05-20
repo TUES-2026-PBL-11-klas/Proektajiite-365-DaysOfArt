@@ -17,7 +17,6 @@ def create_app(config=None):
         app.config.update(config)
 
     CORS(app)
-    db.init_app(app)
 
     from .routes import main
     app.register_blueprint(main)
