@@ -16,6 +16,10 @@ def make_submission_service():
     return SubmissionService(prompt_repository, submission_repository)
 
 
+def make_submission_repository():
+    return SubmissionRepository()
+
+
 def make_recommendation_service():
     return RecommendationService(SubmissionRepository())
 
