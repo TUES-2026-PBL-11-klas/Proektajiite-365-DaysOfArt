@@ -6,16 +6,18 @@ class RecommendationService:
 
     def recalculate_scores(self):
         interaction_scores = {
-            row.submission_id: float(row.score)
+            (row.user_id, row.submission_id): float(row.score)
             for row in self.submission_repository.calculate_interaction_scores()
         }
 
         updated = []
         for submission in self.submission_repository.list_submissions():
-            score = interaction_scores.get(submission.id, self.DEFAULT_SUBMISSION_SCORE)
+            score = interaction_scores.get(
+                (submission.user_id, submission.id), self.DEFAULT_SUBMISSION_SCORE
+            )
             updated.append(
                 self.submission_repository.upsert_recommendation_score(
-                    submission.id, score
+                    submission.user_id, submission.id, score
                 )
             )
         return updated

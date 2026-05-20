@@ -14,3 +14,15 @@ class Topic(db.Model):
     is_used     = db.Column(db.Boolean, nullable=False)
     used_on     = db.Column(db.Date)
     created_at  = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "title": self.title,
+            "description": self.description,
+            "category": self.category,
+            "tag": None,
+            "is_used": self.is_used,
+            "used_on": self.used_on.isoformat() if self.used_on else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

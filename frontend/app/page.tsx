@@ -3,9 +3,9 @@
 import { FormEvent, PointerEvent, useEffect, useRef, useState } from "react";
 
 type DailyPrompt = {
-  id: number;
+  id: string;
   date: string;
-  organization_id: number | null;
+  organization_id: string | null;
   prompt: {
     id: number;
     title: string;
@@ -28,8 +28,8 @@ export default function Home() {
   const [status, setStatus] = useState("Loading today's prompt");
   const [color, setColor] = useState(colors[0]);
   const [brushSize, setBrushSize] = useState(8);
-  const [userId, setUserId] = useState("1");
-  const [organizationId, setOrganizationId] = useState("1");
+  const [userId, setUserId] = useState("");
+  const [organizationId, setOrganizationId] = useState("");
   const [caption, setCaption] = useState("");
 
   useEffect(() => {
@@ -58,9 +58,10 @@ export default function Home() {
     async function loadPrompt() {
       setStatus("Loading today's prompt");
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/prompts/daily?organization_id=${organizationId}`,
-        );
+        const query = organizationId
+          ? `?organization_id=${encodeURIComponent(organizationId)}`
+          : "";
+        const response = await fetch(`${API_BASE_URL}/api/prompts/daily${query}`);
         if (!response.ok) {
           throw new Error("Prompt is not available");
         }
@@ -155,8 +156,8 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: Number(userId),
-          organization_id: Number(organizationId),
+          user_id: userId,
+          organization_id: organizationId,
           prompt_id: dailyPrompt.prompt.id,
           image_data: canvas.toDataURL("image/png"),
           caption,
@@ -191,9 +192,8 @@ export default function Home() {
               User
               <input
                 className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-                inputMode="numeric"
-                min="1"
-                type="number"
+                placeholder="User UUID"
+                type="text"
                 value={userId}
                 onChange={(event) => setUserId(event.target.value)}
               />
@@ -202,9 +202,8 @@ export default function Home() {
               Organization
               <input
                 className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-                inputMode="numeric"
-                min="1"
-                type="number"
+                placeholder="Organization UUID"
+                type="text"
                 value={organizationId}
                 onChange={(event) => setOrganizationId(event.target.value)}
               />
@@ -316,7 +315,7 @@ export default function Home() {
               </button>
               <button
                 className="h-11 bg-[#18181b] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!dailyPrompt}
+                disabled={!dailyPrompt || !userId || !organizationId}
                 type="submit"
               >
                 Publish

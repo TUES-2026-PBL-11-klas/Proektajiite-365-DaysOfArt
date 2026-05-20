@@ -6,10 +6,10 @@ from .exceptions import AppError
 main = Blueprint("main", __name__)
 
 
-def _optional_int(value):
+def _optional_value(value):
     if value is None or value == "":
         return None
-    return int(value)
+    return value
 
 
 @main.route("/api/health")
@@ -35,7 +35,7 @@ def create_prompt():
 
 @main.route("/api/prompts/daily", methods=["GET"])
 def get_daily_prompt():
-    organization_id = _optional_int(request.args.get("organization_id"))
+    organization_id = _optional_value(request.args.get("organization_id"))
     daily_prompt = make_prompt_service().get_or_create_daily_prompt(organization_id)
     return jsonify({"daily_prompt": daily_prompt.to_dict()})
 

@@ -1,9 +1,22 @@
 from datetime import date
 
+from app.extensions import db
+from app.models import Organization, User
 from app.repositories.prompt_repository import PromptRepository
 
 
+def create_user_and_organization(username="artist", email="artist@example.com"):
+    user = User(username=username, email=email, password_hash="hash")
+    organization = Organization(name=f"{username} organization")
+    db.session.add_all([user, organization])
+    db.session.commit()
+    return str(user.id), str(organization.id)
+
+
 def test_submit_endpoint_accepts_today_prompt(client, app):
+    with app.app_context():
+        user_id, organization_id = create_user_and_organization()
+
     create_response = client.post(
         "/api/prompts",
         json={
@@ -11,7 +24,6 @@ def test_submit_endpoint_accepts_today_prompt(client, app):
             "description": "Draw a tiny creature hiding in a bright forest.",
             "category": "fantasy",
             "tag": "forest",
-            "organization_id": 10,
         },
     )
     assert create_response.status_code == 201
@@ -20,13 +32,13 @@ def test_submit_endpoint_accepts_today_prompt(client, app):
     with app.app_context():
         prompt_repository = PromptRepository()
         prompt = prompt_repository.get_prompt(prompt_id)
-        prompt_repository.save_daily_prompt(prompt, 10, date.today())
+        prompt_repository.save_daily_prompt(prompt, organization_id, date.today())
 
     submit_response = client.post(
         "/api/submissions",
         json={
-            "user_id": 7,
-            "organization_id": 10,
+            "user_id": user_id,
+            "organization_id": organization_id,
             "prompt_id": prompt_id,
             "image_data": "data:image/png;base64,iVBORw0KGgo=",
             "caption": "first sketch",
@@ -35,11 +47,16 @@ def test_submit_endpoint_accepts_today_prompt(client, app):
 
     assert submit_response.status_code == 201
     body = submit_response.get_json()
-    assert body["submission"]["user_id"] == 7
+    assert body["submission"]["user_id"] == user_id
     assert body["submission"]["prompt_id"] == prompt_id
 
 
 def test_submit_endpoint_rejects_non_daily_prompt(client):
+    with client.application.app_context():
+        user_id, organization_id = create_user_and_organization(
+            "second-artist", "second@example.com"
+        )
+
     create_response = client.post(
         "/api/prompts",
         json={
@@ -52,7 +69,8 @@ def test_submit_endpoint_rejects_non_daily_prompt(client):
     submit_response = client.post(
         "/api/submissions",
         json={
-            "user_id": 7,
+            "user_id": user_id,
+            "organization_id": organization_id,
             "prompt_id": prompt_id,
             "image_data": "data:image/png;base64,iVBORw0KGgo=",
         },

@@ -20,7 +20,10 @@ class SubmissionService:
         if not prompt:
             raise NotFoundError("Prompt not found")
 
-        organization_id = payload.get("organization_id", prompt.organization_id)
+        organization_id = payload.get("organization_id")
+        if organization_id is None:
+            raise ValidationError("organization_id is required")
+
         daily_prompt = self.prompt_repository.get_daily_prompt(
             organization_id, date.today()
         )
