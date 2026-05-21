@@ -57,3 +57,36 @@ def run_daily_cron():
             }
         }
     )
+from .container import make_social_service
+
+
+@main.route("/api/likes", methods=["POST"])
+def add_like():
+    make_social_service().add_like(request.get_json(silent=True) or {})
+    return jsonify({"status": "liked"}), 201
+
+
+@main.route("/api/likes", methods=["DELETE"])
+def remove_like():
+    make_social_service().remove_like(request.get_json(silent=True) or {})
+    return jsonify({"status": "unliked"}), 200
+
+
+@main.route("/api/comments", methods=["POST"])
+def add_comment():
+    comment = make_social_service().add_comment(request.get_json(silent=True) or {})
+    return jsonify({"comment": comment.to_dict()}), 201
+
+
+@main.route("/api/submissions/<submission_id>/comments", methods=["GET"])
+def get_comments(submission_id):
+    comments = make_social_service().get_comments(submission_id)
+    return jsonify({"comments": [c.to_dict() for c in comments]})
+
+
+@main.route("/api/leaderboard", methods=["GET"])
+def get_leaderboard():
+    organization_id = _optional_value(request.args.get("organization_id"))
+    limit = min(int(request.args.get("limit", 10)), 50)
+    entries = make_social_service().get_leaderboard(organization_id, limit)
+    return jsonify({"leaderboard": entries})

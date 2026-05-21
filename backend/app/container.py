@@ -27,3 +27,10 @@ def make_prompt_scheduler():
         PromptService(prompt_repository),
         RecommendationService(submission_repository),
     )
+
+from .repositories.social_repository import SocialRepository
+from .services.social_service import SocialService
+
+
+def make_social_service():
+    return SocialService(SocialRepository())

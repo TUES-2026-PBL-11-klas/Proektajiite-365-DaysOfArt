@@ -16,6 +16,14 @@ class Like(db.Model):
     submission_id = db.Column(UUID(as_uuid=True), db.ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False)
     created_at    = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "user_id": str(self.user_id),
+            "submission_id": str(self.submission_id),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
 
 class Comment(db.Model):
     __tablename__ = "comments"
@@ -25,3 +33,12 @@ class Comment(db.Model):
     submission_id = db.Column(UUID(as_uuid=True), db.ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False)
     content       = db.Column(db.Text, nullable=False)
     created_at    = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "user_id": str(self.user_id),
+            "submission_id": str(self.submission_id),
+            "content": self.content,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
