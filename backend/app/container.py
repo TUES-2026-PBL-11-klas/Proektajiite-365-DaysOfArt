@@ -27,3 +27,17 @@ def make_prompt_scheduler():
         PromptService(prompt_repository),
         RecommendationService(submission_repository),
     )
+from .observers.leaderboard_updater import LeaderboardUpdater
+from .observers.interaction_tracker import InteractionTracker
+from .repositories.social_repository import SocialRepository
+
+
+def make_social_service():
+    social_repo      = SocialRepository()
+    submission_repo  = SubmissionRepository()   
+
+    observers = [
+        LeaderboardUpdater(social_repo),
+        InteractionTracker(submission_repo),
+    ]
+    return SocialService(social_repo, observers=observers)
