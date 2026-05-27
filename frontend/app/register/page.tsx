@@ -26,6 +26,12 @@ function orgMatchesAge(org: Organization, age: number) {
   return true;
 }
 
+const inputClass =
+  "mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]";
+const labelClass = "text-sm font-medium text-[#3f3f46]";
+const errorClass = "mt-1 block text-xs font-medium text-[#b91c1c]";
+const hintClass = "mt-1 block text-xs text-[#71717a]";
+
 export default function RegisterPage() {
   const { register } = useAuth();
   const [username, setUsername] = useState("");
@@ -54,8 +60,6 @@ export default function RegisterPage() {
     [orgs, age]
   );
 
-  // The auto-suggested org is derived from the birth date. Once the user
-  // explicitly picks one, their choice takes precedence — no effects needed.
   const effectiveOrgId = touched.organization
     ? organizationId
     : matchingOrgs[0]?.id ?? "";
@@ -129,127 +133,139 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-6 py-12">
-      <h1 className="mb-6 text-2xl font-semibold">Регистрация</h1>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Потребителско име
-          <input
-            required
-            minLength={3}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            {...field("username")}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          {errors.username && (
-            <span className="text-xs text-red-600">{errors.username}</span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Имейл
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            {...field("email")}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          {errors.email && (
-            <span className="text-xs text-red-600">{errors.email}</span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Парола (мин. 8 символа)
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            {...field("password")}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          {errors.password && (
-            <span className="text-xs text-red-600">{errors.password}</span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Име за показване (по избор)
-          <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Дата на раждане
-          <input
-            type="date"
-            max={TODAY_ISO}
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            {...field("birthDate")}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          {age !== null && !errors.birthDate && (
-            <span className="text-xs text-zinc-500">Възраст: {age} г.</span>
-          )}
-          {errors.birthDate && (
-            <span className="text-xs text-red-600">{errors.birthDate}</span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Възрастова група
-          {age !== null && matchingOrgs.length > 0 && !touched.organization && (
-            <span className="text-xs text-emerald-600">
-              Предложена според възрастта ти
+    <div className="bg-[#f7f5ef] py-12">
+      <div className="mx-auto w-full max-w-md border border-[#d8d3c7] bg-white px-8 py-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7c3aed]">
+          365 DaysOfArt
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Регистрация</h1>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <label className={labelClass}>
+            Потребителско име
+            <input
+              required
+              minLength={3}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              {...field("username")}
+              className={inputClass}
+            />
+            {errors.username && <span className={errorClass}>{errors.username}</span>}
+          </label>
+
+          <label className={labelClass}>
+            Имейл
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              {...field("email")}
+              className={inputClass}
+            />
+            {errors.email && <span className={errorClass}>{errors.email}</span>}
+          </label>
+
+          <label className={labelClass}>
+            Парола (мин. 8 символа)
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              {...field("password")}
+              className={inputClass}
+            />
+            {errors.password && <span className={errorClass}>{errors.password}</span>}
+          </label>
+
+          <label className={labelClass}>
+            Име за показване (по избор)
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+
+          <label className={labelClass}>
+            Дата на раждане
+            <input
+              type="date"
+              max={TODAY_ISO}
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              {...field("birthDate")}
+              className={inputClass}
+            />
+            {age !== null && !errors.birthDate && (
+              <span className={hintClass}>Възраст: {age} г.</span>
+            )}
+            {errors.birthDate && (
+              <span className={errorClass}>{errors.birthDate}</span>
+            )}
+          </label>
+
+          <label className={labelClass}>
+            <span className="flex items-center justify-between">
+              Възрастова група
+              {age !== null && matchingOrgs.length > 0 && !touched.organization && (
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c3aed]">
+                  Авто-предложение
+                </span>
+              )}
             </span>
+            <select
+              value={effectiveOrgId}
+              onChange={(e) => {
+                setOrganizationId(e.target.value);
+                setTouched((t) => ({ ...t, organization: true }));
+              }}
+              className={inputClass}
+            >
+              <option value="">— по-късно —</option>
+              {orgs.map((o) => {
+                const compatible = age === null || orgMatchesAge(o, age);
+                return (
+                  <option key={o.id} value={o.id} disabled={!compatible}>
+                    {o.name}
+                    {o.min_age !== null || o.max_age !== null
+                      ? ` (${o.min_age ?? "?"}–${o.max_age ?? "?"} г.)`
+                      : ""}
+                    {!compatible ? " — не отговаря" : ""}
+                  </option>
+                );
+              })}
+            </select>
+            {age !== null && matchingOrgs.length === 0 && orgs.length > 0 && (
+              <span className={hintClass}>
+                Няма организация за тази възраст. Можеш да се присъединиш по-късно.
+              </span>
+            )}
+          </label>
+
+          {error && (
+            <p className="border border-[#fca5a5] bg-[#fef2f2] px-3 py-2 text-sm text-[#b91c1c]">
+              {error}
+            </p>
           )}
-          <select
-            value={effectiveOrgId}
-            onChange={(e) => {
-              setOrganizationId(e.target.value);
-              setTouched((t) => ({ ...t, organization: true }));
-            }}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+
+          <button
+            type="submit"
+            disabled={submitting || !formValid}
+            className="mt-2 h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
           >
-            <option value="">— по-късно —</option>
-            {orgs.map((o) => {
-              const compatible = age === null || orgMatchesAge(o, age);
-              return (
-                <option key={o.id} value={o.id} disabled={!compatible}>
-                  {o.name}
-                  {o.min_age !== null || o.max_age !== null
-                    ? ` (${o.min_age ?? "?"}–${o.max_age ?? "?"} г.)`
-                    : ""}
-                  {!compatible ? " — не отговаря" : ""}
-                </option>
-              );
-            })}
-          </select>
-          {age !== null && matchingOrgs.length === 0 && orgs.length > 0 && (
-            <span className="text-xs text-amber-600">
-              Няма организация за тази възраст. Можеш да се присъединиш по-късно.
-            </span>
-          )}
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting || !formValid}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-60 dark:bg-white dark:text-black"
-        >
-          {submitting ? "Създаване…" : "Създай акаунт"}
-        </button>
-      </form>
-      <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-        Имаш акаунт?{" "}
-        <Link href="/login" className="underline">
-          Влез
-        </Link>
-      </p>
+            {submitting ? "Създаване…" : "Създай акаунт"}
+          </button>
+        </form>
+        <p className="mt-6 text-sm text-[#52525b]">
+          Имаш акаунт?{" "}
+          <Link href="/login" className="font-medium text-[#7c3aed] hover:underline">
+            Влез
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

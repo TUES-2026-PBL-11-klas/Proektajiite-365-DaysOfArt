@@ -30,6 +30,12 @@ class InvalidCredentialsError(AppError):
     message = "Invalid email or password"
 
 
+class NotFoundError(AppError):
+    """Generic 404 used by Person 2's prompt/submission code."""
+    status_code = 404
+    message = "Not found"
+
+
 class UserNotFoundError(AppError):
     status_code = 404
     message = "User not found"

@@ -3,6 +3,10 @@
 import { useState, FormEvent } from "react";
 import { apiFetch } from "@/lib/api";
 
+const inputClass =
+  "mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]";
+const labelClass = "text-sm font-medium text-[#3f3f46]";
+
 export function ChangePasswordSection() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
@@ -50,29 +54,29 @@ export function ChangePasswordSection() {
   }
 
   return (
-    <section className="mb-10 rounded border border-zinc-200 p-4 dark:border-zinc-800">
+    <section className="mb-10 border border-[#d8d3c7] bg-white p-5">
       <button
         onClick={() => {
           reset();
           setOpen((v) => !v);
         }}
-        className="text-left text-sm font-medium underline"
+        className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#7c3aed] hover:text-[#6d28d9]"
       >
         {open ? "Скрий смяна на парола" : "Смяна на парола"}
       </button>
       {open && (
-        <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
+        <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4">
+          <label className={labelClass}>
             Текуща парола
             <input
               type="password"
               required
               value={current}
               onChange={(e) => setCurrent(e.target.value)}
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={inputClass}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className={labelClass}>
             Нова парола (мин. 8 символа)
             <input
               type="password"
@@ -80,10 +84,10 @@ export function ChangePasswordSection() {
               minLength={8}
               value={next}
               onChange={(e) => setNext(e.target.value)}
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={inputClass}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className={labelClass}>
             Повтори новата парола
             <input
               type="password"
@@ -91,17 +95,23 @@ export function ChangePasswordSection() {
               minLength={8}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={inputClass}
             />
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="border border-[#fca5a5] bg-[#fef2f2] px-3 py-2 text-sm text-[#b91c1c]">
+              {error}
+            </p>
+          )}
           {success && (
-            <p className="text-sm text-emerald-600">Паролата е сменена успешно.</p>
+            <p className="border border-[#a7f3d0] bg-[#ecfdf5] px-3 py-2 text-sm text-[#047857]">
+              Паролата е сменена успешно.
+            </p>
           )}
           <button
             type="submit"
             disabled={saving}
-            className="self-start rounded bg-black px-4 py-2 text-white disabled:opacity-60 dark:bg-white dark:text-black"
+            className="self-start h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
           >
             {saving ? "Запис…" : "Смени паролата"}
           </button>

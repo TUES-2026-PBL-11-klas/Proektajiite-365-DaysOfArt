@@ -1,7 +1,10 @@
 from flask import Blueprint, jsonify, request
 
-from .container import make_prompt_scheduler, make_prompt_service, make_submission_service
-from .exceptions import AppError
+from ..container import (
+    make_prompt_scheduler,
+    make_prompt_service,
+    make_submission_service,
+)
 
 main = Blueprint("main", __name__)
 
@@ -15,16 +18,6 @@ def _optional_value(value):
 @main.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
-
-
-@main.errorhandler(AppError)
-def handle_app_error(error):
-    return jsonify({"error": error.message}), error.status_code
-
-
-@main.errorhandler(ValueError)
-def handle_value_error(error):
-    return jsonify({"error": str(error)}), 400
 
 
 @main.route("/api/prompts", methods=["POST"])

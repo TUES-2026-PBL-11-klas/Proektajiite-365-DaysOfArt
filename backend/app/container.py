@@ -1,19 +1,40 @@
-from .repositories.prompt_repository import PromptRepository
-from .repositories.submission_repository import SubmissionRepository
-from .scheduler.prompt_scheduler import PromptScheduler
-from .services.prompt_service import PromptService
-from .services.recommendation_service import RecommendationService
-from .services.submission_service import SubmissionService
+from app.extensions import db
+from app.security import PasswordHasher
+from app.repositories import UserRepository, OrganizationRepository
+from app.repositories.prompt_repository import PromptRepository
+from app.repositories.submission_repository import SubmissionRepository
+from app.services import AuthService, UserService, OrganizationService
+from app.services.prompt_service import PromptService
+from app.services.recommendation_service import RecommendationService
+from app.services.submission_service import SubmissionService
+from app.scheduler.prompt_scheduler import PromptScheduler
+
+_password_hasher = PasswordHasher()
 
 
+def build_services(session=None):
+    """Person 1's composition root. Wires repositories and services for auth,
+    profile and organization features. Routes call this instead of constructing
+    dependencies themselves."""
+    session = session or db.session
+    user_repo = UserRepository(session)
+    org_repo = OrganizationRepository(session)
+
+    return {
+        "auth": AuthService(user_repo, _password_hasher),
+        "users": UserService(user_repo),
+        "organizations": OrganizationService(org_repo, user_repo),
+    }
+
+
+# Person 2's factories — kept here so prompt/submission routes don't need to
+# know about repository wiring.
 def make_prompt_service():
     return PromptService(PromptRepository())
 
 
 def make_submission_service():
-    prompt_repository = PromptRepository()
-    submission_repository = SubmissionRepository()
-    return SubmissionService(prompt_repository, submission_repository)
+    return SubmissionService(PromptRepository(), SubmissionRepository())
 
 
 def make_recommendation_service():
@@ -21,9 +42,7 @@ def make_recommendation_service():
 
 
 def make_prompt_scheduler():
-    prompt_repository = PromptRepository()
-    submission_repository = SubmissionRepository()
     return PromptScheduler(
-        PromptService(prompt_repository),
-        RecommendationService(submission_repository),
+        PromptService(PromptRepository()),
+        RecommendationService(SubmissionRepository()),
     )

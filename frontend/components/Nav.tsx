@@ -7,40 +7,51 @@ export function Nav() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
-      <Link href="/" className="text-lg font-semibold">
-        365 DaysOfArt
+    <nav className="flex items-center justify-between border-b border-[#d8d3c7] bg-[#f7f5ef] px-6 py-4">
+      <Link href="/" className="flex flex-col leading-tight">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7c3aed]">
+          365 DaysOfArt
+        </span>
+        <span className="text-base font-semibold text-[#18181b]">Drawing Board</span>
       </Link>
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-5 text-sm text-[#3f3f46]">
         {user ? (
           <>
-            <Link href="/profile" className="hover:underline">
+            <Link
+              href="/profile"
+              className="font-medium hover:text-[#7c3aed]"
+            >
               Профил
             </Link>
-            <Link href="/organizations" className="hover:underline">
+            <Link
+              href="/organizations"
+              className="font-medium hover:text-[#7c3aed]"
+            >
               Организации
             </Link>
-            <span className="text-zinc-500">{user.display_name || user.username}</span>
+            <span className="text-[#71717a]">
+              {user.display_name || user.username}
+            </span>
             {user.role === "admin" && (
-              <span className="rounded bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-700 dark:text-amber-100">
+              <span className="bg-[#7c3aed] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
                 admin
               </span>
             )}
             <button
               onClick={() => logout()}
-              className="rounded border border-zinc-300 px-3 py-1 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              className="border border-[#c8c2b6] bg-white px-3 py-1 font-medium text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed]"
             >
               Изход
             </button>
           </>
         ) : (
           <>
-            <Link href="/login" className="hover:underline">
+            <Link href="/login" className="font-medium hover:text-[#7c3aed]">
               Вход
             </Link>
             <Link
               href="/register"
-              className="rounded bg-black px-3 py-1 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="bg-[#7c3aed] px-4 py-2 font-semibold text-white hover:bg-[#6d28d9]"
             >
               Регистрация
             </Link>
