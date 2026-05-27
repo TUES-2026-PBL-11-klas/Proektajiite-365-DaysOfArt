@@ -13,7 +13,15 @@ Helpers:
 import uuid
 from datetime import date, timedelta
 
+import pytest
+
 from app.extensions import db
+
+
+# Override conftest's fake-repo client with one backed by the real SQLite app.
+@pytest.fixture()
+def client(app):
+    return app.test_client()
 from app.models import Organization, RecommendationScore, Submission, Topic, User
 
 TODAY = date.today()

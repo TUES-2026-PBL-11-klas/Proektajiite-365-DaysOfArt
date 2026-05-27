@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setToken(data.access_token);
       setUser(data.user);
-      router.push("/profile");
+      router.push("/dashboard");
     },
     [router]
   );

@@ -11,7 +11,15 @@ load_dotenv()
 
 def create_app(config=None):
     app = Flask(__name__)
-    CORS(app)
+    CORS(
+        app,
+        resources={r"/api/*": {
+            "origins": "*",
+            "allow_headers": ["Content-Type", "Authorization", "Accept"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "expose_headers": ["Content-Type"],
+        }},
+    )
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL", "sqlite:///365_days_of_art.db"

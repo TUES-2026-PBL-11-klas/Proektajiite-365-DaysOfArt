@@ -26,6 +26,36 @@ type RequestOptions = {
   auth?: boolean;
 };
 
+// ── Person 3 compatibility exports ───────────────────────────────────────────
+// These are used by app/feed, app/submissions/[id], and app/users/[id].
+export const API_BASE = API_URL;
+
+export type Submission = {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  topic_id: string;
+  image_data: string;
+  image_url: string;
+  date: string;
+  submitted_at: string | null;
+  created_at: string | null;
+  caption: string | null;
+};
+
+export type SubmissionPage = {
+  submissions: Submission[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+};
+
+export function submissionSrc(sub: Submission): string {
+  return sub.image_data || sub.image_url;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function apiFetch<T>(
   path: string,
   { method = "GET", body, auth = true }: RequestOptions = {},

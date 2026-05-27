@@ -1,8 +1,16 @@
 from datetime import date
 
+import pytest
+
 from app.extensions import db
 from app.models import Organization, User
 from app.repositories.prompt_repository import PromptRepository
+
+
+# Override conftest's fake-repo client with one backed by the real SQLite app.
+@pytest.fixture()
+def client(app):
+    return app.test_client()
 
 
 def create_user_and_organization(username="artist", email="artist@example.com"):
@@ -76,5 +84,6 @@ def test_submit_endpoint_rejects_non_daily_prompt(client):
         },
     )
 
-    assert submit_response.status_code == 400
+    # Person 1's ValidationError uses 422 Unprocessable Entity (semantically correct).
+    assert submit_response.status_code == 422
     assert "today's prompt" in submit_response.get_json()["error"]

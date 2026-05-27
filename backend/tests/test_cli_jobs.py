@@ -1,8 +1,16 @@
 from datetime import date
 
+import pytest
+
 from app.extensions import db
 from app.models import Organization, RecommendationScore, Topic, User
 from app.repositories.prompt_repository import PromptRepository
+
+
+# Override conftest's fake-repo client with one backed by the real SQLite app.
+@pytest.fixture()
+def client(app):
+    return app.test_client()
 
 
 def create_user_and_organization():

@@ -9,6 +9,25 @@ from app.services import AuthService, UserService, OrganizationService
 from tests.fakes import FakeUserRepository, FakeOrganizationRepository, Store
 
 
+# ── Integration-test fixtures (SQLite in-memory, real ORM) ───────────────────
+# Used by Person 3's feed/submission/CLI tests.  The local `client(app)` fixture
+# in each of those test files overrides the fake-repo `client` below.
+
+@pytest.fixture
+def app():
+    from app import create_app
+    from app.extensions import db
+    application = create_app(
+        {"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"}
+    )
+    with application.app_context():
+        db.create_all()
+        yield application
+        db.session.remove()
+        db.drop_all()
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 @pytest.fixture
 def store():
     return Store()
