@@ -1,7 +1,8 @@
 flask
 flask-cors
 flask-sqlalchemy
+flask-jwt-extended
+bcrypt
+email-validator
 psycopg2-binary
 python-dotenv
-flask-sqlalchemy
-pytest
