@@ -4,9 +4,10 @@ from ..exceptions import NotFoundError, ValidationError
 
 
 class SubmissionService:
-    def __init__(self, prompt_repository, submission_repository):
+    def __init__(self, prompt_repository, submission_repository, organization_repository):
         self.prompt_repository = prompt_repository
         self.submission_repository = submission_repository
+        self.organization_repository = organization_repository
 
     def submit_drawing(self, payload):
         user_id = payload.get("user_id")
@@ -24,14 +25,17 @@ class SubmissionService:
         if organization_id is None:
             raise ValidationError("organization_id is required")
 
+        if not self.organization_repository.get_membership(user_id, organization_id):
+            raise ValidationError("You are not a member of this organization")
+
         daily_prompt = self.prompt_repository.get_daily_prompt(
             organization_id, date.today()
         )
         if not daily_prompt or daily_prompt.prompt_id != prompt.id:
             raise ValidationError("Submissions are allowed only for today's prompt")
 
-        if self.submission_repository.has_submission_for_prompt_today(user_id, prompt_id):
-            raise ValidationError("User already submitted a drawing for today's prompt")
+        if self.submission_repository.has_submission_for_org_today(user_id, organization_id):
+            raise ValidationError("You have already submitted a drawing for this organization today")
 
         return self.submission_repository.create_submission(
             user_id=user_id,

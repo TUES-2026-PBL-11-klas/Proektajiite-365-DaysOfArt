@@ -5,6 +5,16 @@ from collections import defaultdict
 from ..utils import to_uuid
 
 
+def _cosine_similarity(vec_a, vec_b):
+    common = set(vec_a) & set(vec_b)
+    if not common:
+        return 0.0
+    dot = sum(vec_a[k] * vec_b[k] for k in common)
+    norm_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
+    norm_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
+    return dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
+
+
 class RecommendationStrategy(ABC):
     @abstractmethod
     def recommend(self, repository, **kwargs):
@@ -33,18 +43,9 @@ class UserBasedStrategy(RecommendationStrategy):
         if not target_vec:
             return []
 
-        def cosine_similarity(vec_a, vec_b):
-            common = set(vec_a) & set(vec_b)
-            if not common:
-                return 0.0
-            dot = sum(vec_a[k] * vec_b[k] for k in common)
-            norm_a = math.sqrt(sum(v ** 2 for v in vec_a.values()))
-            norm_b = math.sqrt(sum(v ** 2 for v in vec_b.values()))
-            return dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
-
         neighbours = sorted(
             (
-                (other_uid, cosine_similarity(target_vec, vec))
+                (other_uid, _cosine_similarity(target_vec, vec))
                 for other_uid, vec in user_vectors.items()
                 if other_uid != uid
             ),
@@ -108,21 +109,43 @@ class RecommendationService:
         self._submission_strategy = SubmissionBasedStrategy()
 
     def recalculate_scores(self):
-        """Persist pre-computed recommendation scores for the cron job (Person 2)."""
-        interaction_scores = {
-            (row.user_id, row.submission_id): float(row.score)
-            for row in self.submission_repository.calculate_interaction_scores()
-        }
-        return [
-            self.submission_repository.upsert_recommendation_score(
-                submission.user_id,
-                submission.id,
-                interaction_scores.get(
-                    (submission.user_id, submission.id), self.DEFAULT_SUBMISSION_SCORE
-                ),
-            )
-            for submission in self.submission_repository.list_submissions()
-        ]
+        """Persist pre-computed recommendation scores for every user via user-user CF."""
+        rows = self.submission_repository.get_interaction_matrix()
+        if not rows:
+            return []
+
+        user_vectors = defaultdict(dict)
+        for row in rows:
+            score = float(row.score)
+            if score > 0:
+                user_vectors[str(row.user_id)][str(row.submission_id)] = score
+
+        persisted = []
+        for uid, target_vec in user_vectors.items():
+            # Persist direct interaction scores so the feed reflects what the user engaged with
+            for sub_id, score in target_vec.items():
+                persisted.append(
+                    self.submission_repository.upsert_recommendation_score(uid, sub_id, score)
+                )
+
+            # CF: score unseen submissions via similarity-weighted neighbour preferences
+            candidate_scores = defaultdict(float)
+            for other_uid, other_vec in user_vectors.items():
+                if other_uid == uid:
+                    continue
+                sim = _cosine_similarity(target_vec, other_vec)
+                if sim <= 0:
+                    continue
+                for sub_id, other_score in other_vec.items():
+                    if sub_id not in target_vec:
+                        candidate_scores[sub_id] += sim * other_score
+
+            for sub_id, predicted_score in candidate_scores.items():
+                persisted.append(
+                    self.submission_repository.upsert_recommendation_score(uid, sub_id, predicted_score)
+                )
+
+        return persisted
 
     def get_similar_drawings(self, submission_id, limit=10):
         candidate_ids = self._submission_strategy.recommend(

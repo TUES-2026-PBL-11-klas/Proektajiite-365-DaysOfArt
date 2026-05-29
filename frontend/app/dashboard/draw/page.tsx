@@ -62,6 +62,7 @@ function DrawBoard() {
   const [color, setColor] = useState(colors[0]);
   const [brushSize, setBrushSize] = useState(8);
   const [userId, setUserId] = useState(user?.id ?? "");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState("");
   const [caption, setCaption] = useState("");
 
@@ -70,7 +71,7 @@ function DrawBoard() {
     if (user?.id) setUserId(user.id);
   }, [user]);
 
-  // Resolve the selected organization from the dashboard dropdown.
+  // Load the user's member organizations and resolve the initial selection.
   useEffect(() => {
     const queryOrgId = searchParams.get("organization_id") ?? "";
     const savedOrgId =
@@ -78,17 +79,18 @@ function DrawBoard() {
         ? window.localStorage.getItem("365art_selected_org_id") ?? ""
         : "";
 
-    apiFetch<{ organizations: Organization[] }>("/api/organizations", { auth: false })
+    apiFetch<{ organizations: Organization[] }>("/api/organizations/mine")
       .then((data) => {
-        const organizations = data.organizations ?? [];
+        const orgs = data.organizations ?? [];
+        setOrganizations(orgs);
         const nextOrgId =
-          (queryOrgId && organizations.some((org) => org.id === queryOrgId)
+          (queryOrgId && orgs.some((org) => org.id === queryOrgId)
             ? queryOrgId
             : "") ||
-          (savedOrgId && organizations.some((org) => org.id === savedOrgId)
+          (savedOrgId && orgs.some((org) => org.id === savedOrgId)
             ? savedOrgId
             : "") ||
-          organizations[0]?.id ||
+          orgs[0]?.id ||
           "";
         setOrganizationId(nextOrgId);
         if (nextOrgId && typeof window !== "undefined") {
@@ -99,6 +101,15 @@ function DrawBoard() {
         setOrganizationId(queryOrgId || savedOrgId);
       });
   }, [searchParams]);
+
+  function selectOrganization(nextOrgId: string) {
+    setOrganizationId(nextOrgId);
+    setStatus("");
+    if (typeof window !== "undefined") {
+      if (nextOrgId) window.localStorage.setItem("365art_selected_org_id", nextOrgId);
+      else window.localStorage.removeItem("365art_selected_org_id");
+    }
+  }
 
   // Initialise the canvas.
   useEffect(() => {
@@ -298,6 +309,34 @@ function DrawBoard() {
           {/* Sidebar */}
           <aside className="flex flex-col gap-4 border-r border-[#d8d3c7] pr-0 lg:pr-5">
 
+            {/* Organization selector */}
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
+                Organization
+              </p>
+              {organizations.length === 0 ? (
+                <p className="mt-2 text-sm text-[#b91c1c]">
+                  You are not a member of any organization.{" "}
+                  <a href="/organizations" className="underline hover:text-[#7c3aed]">
+                    Join one
+                  </a>{" "}
+                  to draw.
+                </p>
+              ) : (
+                <select
+                  className="mt-2 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
+                  value={organizationId}
+                  onChange={(e) => selectOrganization(e.target.value)}
+                >
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </section>
+
             {/* Prompt */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
@@ -433,11 +472,13 @@ function DrawBoard() {
             )}
             {(!dailyPrompt || !userId || !organizationId) && (
               <p className="text-xs text-[#b91c1c]">
-                {!dailyPrompt
-                  ? "No daily prompt is loaded."
-                  : !userId
-                    ? "The user is not loaded."
-                    : "No organization is selected from the dashboard."}
+                {!userId
+                  ? "The user is not loaded. Sign in again."
+                  : organizations.length === 0
+                    ? "You are not a member of any organization."
+                    : !organizationId
+                      ? "Select an organization to draw."
+                      : "No daily prompt is loaded for this organization."}
               </p>
             )}
           </form>

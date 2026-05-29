@@ -96,3 +96,30 @@ class SocialRepository:
                 entry["like_count"] = row.like_count
                 results.append(entry)
         return results
+
+    def get_top_submissions_alltime(self, organization_id, limit=10):
+        today = date.today()
+        like_counts = (
+            db.session.query(
+                Like.submission_id,
+                func.count(Like.id).label("like_count"),
+            )
+            .join(Submission, Submission.id == Like.submission_id)
+            .filter(
+                Submission.organization_id == _uuid(organization_id),
+                Submission.date < today,
+            )
+            .group_by(Like.submission_id)
+            .order_by(func.count(Like.id).desc())
+            .limit(limit)
+            .all()
+        )
+
+        results = []
+        for row in like_counts:
+            submission = db.session.get(Submission, row.submission_id)
+            if submission:
+                entry = submission.to_dict()
+                entry["like_count"] = row.like_count
+                results.append(entry)
+        return results

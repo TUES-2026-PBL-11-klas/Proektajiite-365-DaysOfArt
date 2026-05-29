@@ -53,6 +53,17 @@ class SubmissionRepository:
             is not None
         )
 
+    def has_submission_for_org_today(self, user_id, organization_id, current_date=None):
+        current_date = current_date or date.today()
+        return (
+            Submission.query.filter(
+                Submission.user_id == to_uuid(user_id),
+                Submission.organization_id == to_uuid(organization_id),
+                Submission.date == current_date,
+            ).first()
+            is not None
+        )
+
     # ----------------------------------------------------------------- lookups
 
     def get_by_id(self, submission_id):

@@ -19,14 +19,12 @@ type Props = {
   submissionId: string;
   userId: string;
   isOwner?: boolean;
-  isToday?: boolean;
 };
 
 export default function CommentSection({
   submissionId,
   userId,
   isOwner = false,
-  isToday = true,
 }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [content, setContent] = useState("");
@@ -58,10 +56,6 @@ export default function CommentSection({
     if (!content.trim()) return;
     if (!userId) {
       setError("Sign in to comment.");
-      return;
-    }
-    if (!isToday) {
-      setError("You can only comment on today's drawings.");
       return;
     }
     if (isOwner) {
@@ -139,7 +133,7 @@ export default function CommentSection({
                 ? "You cannot comment on your own drawing"
                 : "Write a comment…"
           }
-          disabled={!userId || isOwner || !isToday}
+          disabled={!userId || isOwner}
           maxLength={500}
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -147,17 +141,12 @@ export default function CommentSection({
         />
         <button
           onClick={postComment}
-          disabled={loading || !userId || isOwner || !isToday || !content.trim()}
+          disabled={loading || !userId || isOwner || !content.trim()}
           className="h-9 bg-[#18181b] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Post
         </button>
       </div>
-      {userId && !isOwner && !isToday && (
-        <p className="text-xs text-[#71717a]">
-          Comments are only active for today&apos;s drawings.
-        </p>
-      )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );

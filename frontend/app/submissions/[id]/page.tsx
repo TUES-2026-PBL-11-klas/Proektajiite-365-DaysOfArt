@@ -115,7 +115,6 @@ export default function SubmissionPage() {
   const promptTitle =
     submission.prompt?.title || `Prompt ${submission.topic_id.slice(0, 8)}`;
   const isOwner = Boolean(currentUserId && currentUserId === submission.user_id);
-  const isToday = submission.date === new Date().toISOString().slice(0, 10);
 
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#171717]">
@@ -202,7 +201,6 @@ export default function SubmissionPage() {
                 submissionId={submission.id}
                 userId={currentUserId}
                 isOwner={isOwner}
-                isToday={isToday}
               />
             </div>
 
@@ -222,7 +220,6 @@ export default function SubmissionPage() {
             submissionId={submission.id}
             userId={currentUserId}
             isOwner={isOwner}
-            isToday={isToday}
           />
         </section>
 

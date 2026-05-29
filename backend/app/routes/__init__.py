@@ -214,6 +214,21 @@ def get_leaderboard():
     return jsonify({"leaderboard": enriched_entries})
 
 
+@main.route("/api/leaderboard/all", methods=["GET"])
+def get_alltime_leaderboard():
+    organization_id = _optional(request.args.get("organization_id"))
+    limit = min(max(1, int(request.args.get("limit", 10))), 50)
+    entries = make_social_service().get_alltime_leaderboard(organization_id, limit)
+    enriched_entries = []
+    for entry in entries:
+        submission = make_submission_repository().get_by_id(entry["id"])
+        if submission:
+            enriched = _submission_detail(submission)
+            enriched["like_count"] = entry["like_count"]
+            enriched_entries.append(enriched)
+    return jsonify({"leaderboard": enriched_entries})
+
+
 # --------------------------------------------------------------- user endpoints
 
 @main.route("/api/users/<user_id>", methods=["GET"])

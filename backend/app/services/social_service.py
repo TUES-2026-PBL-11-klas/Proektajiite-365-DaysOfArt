@@ -16,9 +16,7 @@ class SocialService:
             raise NotFoundError("Submission not found")
         return submission
 
-    def _validate_today_and_not_owner(self, submission, user_id):
-        if submission.date != date.today():
-            raise ValidationError("Action allowed only on today's submissions")
+    def _validate_not_owner(self, submission, user_id):
         if str(submission.user_id) == str(user_id):
             raise ValidationError("Cannot interact with your own submission")
 
@@ -30,6 +28,10 @@ class SocialService:
         for obs in self._observers:
             obs.on_like_removed(str(user_id), str(submission_id))
 
+    def _notify_comment_added(self, user_id, submission_id):
+        for obs in self._observers:
+            obs.on_comment_added(str(user_id), str(submission_id))
+
     # ------------------------------------------------------------------ likes
 
     def add_like(self, payload):
@@ -39,7 +41,7 @@ class SocialService:
             raise ValidationError("user_id and submission_id are required")
 
         submission = self._get_submission_or_404(submission_id)
-        self._validate_today_and_not_owner(submission, user_id)
+        self._validate_not_owner(submission, user_id)
         result = self.repo.add_like(user_id, submission_id)
         self._notify_like_added(user_id, submission_id)
         return result
@@ -51,7 +53,7 @@ class SocialService:
             raise ValidationError("user_id and submission_id are required")
 
         submission = self._get_submission_or_404(submission_id)
-        self._validate_today_and_not_owner(submission, user_id)
+        self._validate_not_owner(submission, user_id)
         self.repo.remove_like(user_id, submission_id)
         self._notify_like_removed(user_id, submission_id)
 
@@ -63,9 +65,7 @@ class SocialService:
             if user_id and not is_owner
             else False,
             "like_count": self.repo.count_likes(submission_id),
-            "can_interact": bool(user_id)
-            and not is_owner
-            and submission.date == date.today(),
+            "can_interact": bool(user_id) and not is_owner,
             "is_owner": is_owner,
             "is_today": submission.date == date.today(),
         }
@@ -80,8 +80,10 @@ class SocialService:
             raise ValidationError("user_id, submission_id and content are required")
 
         submission = self._get_submission_or_404(submission_id)
-        self._validate_today_and_not_owner(submission, user_id)
-        return self.repo.add_comment(user_id, submission_id, content)
+        self._validate_not_owner(submission, user_id)
+        comment = self.repo.add_comment(user_id, submission_id, content)
+        self._notify_comment_added(user_id, submission_id)
+        return comment
 
     def get_comments(self, submission_id):
         if not submission_id:
@@ -95,3 +97,8 @@ class SocialService:
         if not organization_id:
             raise ValidationError("organization_id is required")
         return self.repo.get_top_submissions_today(organization_id, limit)
+
+    def get_alltime_leaderboard(self, organization_id, limit=10):
+        if not organization_id:
+            raise ValidationError("organization_id is required")
+        return self.repo.get_top_submissions_alltime(organization_id, limit)

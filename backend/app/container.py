@@ -34,7 +34,7 @@ def make_prompt_service():
 
 
 def make_submission_service():
-    return SubmissionService(PromptRepository(), SubmissionRepository())
+    return SubmissionService(PromptRepository(), SubmissionRepository(), OrganizationRepository(db.session))
 
 
 def make_submission_repository():

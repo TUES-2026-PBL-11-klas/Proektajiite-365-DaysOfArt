@@ -7,14 +7,12 @@ type Props = {
   submissionId: string;
   userId: string;
   isOwner?: boolean;
-  isToday?: boolean;
 };
 
 export default function LikeButton({
   submissionId,
   userId,
   isOwner = false,
-  isToday = true,
 }: Props) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -52,10 +50,6 @@ export default function LikeButton({
   async function toggleLike() {
     if (!userId) {
       setError("Sign in to like drawings.");
-      return;
-    }
-    if (!isToday) {
-      setError("You can only like today&apos;s drawings.");
       return;
     }
     if (isOwner) {
@@ -105,9 +99,7 @@ export default function LikeButton({
         <p className="text-xs text-[#71717a]">
           {!userId
             ? "Sign in to like drawings."
-            : isOwner
-              ? "You cannot like your own drawing."
-              : "Likes are only active for today's drawings."}
+            : "You cannot like your own drawing."}
         </p>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}

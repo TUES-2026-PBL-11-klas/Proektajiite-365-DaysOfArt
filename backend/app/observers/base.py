@@ -11,3 +11,6 @@ class LikeObserver(ABC):
     @abstractmethod
     def on_like_removed(self, user_id: str, submission_id: str) -> None:
         """Called when a like is removed."""
+
+    def on_comment_added(self, user_id: str, submission_id: str) -> None:
+        """Called when a comment is posted. Override to handle."""
