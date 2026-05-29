@@ -4,6 +4,27 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { API_BASE, Submission, SubmissionPage, submissionSrc } from "@/lib/api";
+import type { User } from "@/lib/types";
+
+const monthOptions = [
+  { value: "01", label: "Jan" },
+  { value: "02", label: "Feb" },
+  { value: "03", label: "Mar" },
+  { value: "04", label: "Apr" },
+  { value: "05", label: "May" },
+  { value: "06", label: "Jun" },
+  { value: "07", label: "Jul" },
+  { value: "08", label: "Aug" },
+  { value: "09", label: "Sep" },
+  { value: "10", label: "Oct" },
+  { value: "11", label: "Nov" },
+  { value: "12", label: "Dec" },
+];
+
+function daysInMonth(year: string, month: string) {
+  if (!year || !month) return 31;
+  return new Date(Number(year), Number(month), 0).getDate();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Recommended Artists — self-contained component.
@@ -81,17 +102,31 @@ export function RecommendedArtists({ userId }: { userId: string }) {
 // Drawing History — date-picker filtered grid of a user's past submissions.
 // ─────────────────────────────────────────────────────────────────────────────
 function DrawingHistory({ userId }: { userId: string }) {
-  const [selectedDate, setSelectedDate] = useState("");
+  const [filterYear, setFilterYear] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterDay, setFilterDay] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<SubmissionPage | null>(null);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const today = new Date().toISOString().split("T")[0];
+  const thisYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 10 }, (_, i) => String(thisYear - i));
+  const selectedDate =
+    filterYear && filterMonth && filterDay
+      ? `${filterYear}-${filterMonth}-${filterDay}`
+      : "";
+  const maxDay = daysInMonth(filterYear, filterMonth);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedDate]);
+  }, [filterYear, filterMonth, filterDay]);
+
+  useEffect(() => {
+    if (filterDay && Number(filterDay) > maxDay) {
+      setFilterDay(String(maxDay).padStart(2, "0"));
+    }
+  }, [filterDay, maxDay]);
 
   useEffect(() => {
     if (!userId) return;
@@ -138,20 +173,58 @@ function DrawingHistory({ userId }: { userId: string }) {
           </h2>
         </div>
 
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <label className="text-sm font-medium text-[#3f3f46]">
             <span className="mb-1 block">Filter by date</span>
-            <input
-              type="date"
-              max={today}
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-            />
+            <div className="grid grid-cols-[110px_100px_80px] gap-2">
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+                className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Year</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Month</option>
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterDay}
+                onChange={(e) => setFilterDay(e.target.value)}
+                className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Day</option>
+                {Array.from({ length: maxDay }, (_, i) => {
+                  const day = String(i + 1).padStart(2, "0");
+                  return (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </label>
-          {selectedDate && (
+          {(filterYear || filterMonth || filterDay) && (
             <button
-              onClick={() => setSelectedDate("")}
+              onClick={() => {
+                setFilterYear("");
+                setFilterMonth("");
+                setFilterDay("");
+              }}
               className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm text-[#71717a] hover:border-[#18181b] hover:text-[#18181b]"
             >
               Clear
@@ -247,6 +320,36 @@ function DrawingHistory({ userId }: { userId: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function UserPage() {
   const { id } = useParams<{ id: string }>();
+  const [artist, setArtist] = useState<User | null>(null);
+  const [artistLoading, setArtistLoading] = useState(true);
+  const [artistError, setArtistError] = useState("");
+
+  useEffect(() => {
+    if (!id) return;
+    const controller = new AbortController();
+    setArtistLoading(true);
+    setArtistError("");
+
+    fetch(`${API_BASE}/api/users/${id}`, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Artist profile could not be loaded.");
+        return res.json();
+      })
+      .then((data: { user: User }) => {
+        setArtist(data.user);
+        setArtistLoading(false);
+      })
+      .catch((err: Error) => {
+        if (err.name === "AbortError") return;
+        setArtistError(err.message);
+        setArtistLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [id]);
+
+  const artistName =
+    artist?.display_name || artist?.username || `Artist ${id.slice(0, 8)}`;
 
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#171717]">
@@ -259,9 +362,19 @@ export default function UserPage() {
               365 DaysOfArt
             </p>
             <h1 className="mt-1 text-3xl font-semibold text-[#18181b]">
-              Artist Profile
+              {artistLoading ? "Artist Profile" : artistName}
             </h1>
-            <p className="mt-1 break-all font-mono text-xs text-[#71717a]">{id}</p>
+            {artist?.username && (
+              <p className="mt-1 text-sm text-[#71717a]">@{artist.username}</p>
+            )}
+            {artist?.bio && (
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#3f3f46]">
+                {artist.bio}
+              </p>
+            )}
+            {!artistLoading && artistError && (
+              <p className="mt-2 text-sm text-[#b91c1c]">{artistError}</p>
+            )}
           </div>
           <Link
             href="/feed"

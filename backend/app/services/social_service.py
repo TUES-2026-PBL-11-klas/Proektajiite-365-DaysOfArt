@@ -55,6 +55,21 @@ class SocialService:
         self.repo.remove_like(user_id, submission_id)
         self._notify_like_removed(user_id, submission_id)
 
+    def get_like_status(self, submission_id, user_id=None):
+        submission = self._get_submission_or_404(submission_id)
+        is_owner = bool(user_id) and str(submission.user_id) == str(user_id)
+        return {
+            "liked": self.repo.is_liked_by_user(user_id, submission_id)
+            if user_id and not is_owner
+            else False,
+            "like_count": self.repo.count_likes(submission_id),
+            "can_interact": bool(user_id)
+            and not is_owner
+            and submission.date == date.today(),
+            "is_owner": is_owner,
+            "is_today": submission.date == date.today(),
+        }
+
     # --------------------------------------------------------------- comments
 
     def add_comment(self, payload):

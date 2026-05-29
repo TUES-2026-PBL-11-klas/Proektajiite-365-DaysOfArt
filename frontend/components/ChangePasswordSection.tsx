@@ -29,11 +29,11 @@ export function ChangePasswordSection() {
     setError(null);
     setSuccess(false);
     if (next.length < 8) {
-      setError("Новата парола трябва да е поне 8 символа.");
+      setError("The new password must be at least 8 characters.");
       return;
     }
     if (next !== confirm) {
-      setError("Новата парола и потвърждението не съвпадат.");
+      setError("The new password and confirmation do not match.");
       return;
     }
     setSaving(true);
@@ -47,7 +47,7 @@ export function ChangePasswordSection() {
       setNext("");
       setConfirm("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при смяна на паролата");
+      setError(err instanceof Error ? err.message : "Password change failed");
     } finally {
       setSaving(false);
     }
@@ -62,12 +62,12 @@ export function ChangePasswordSection() {
         }}
         className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-[#7c3aed] hover:text-[#6d28d9]"
       >
-        {open ? "Скрий смяна на парола" : "Смяна на парола"}
+        {open ? "Hide password change" : "Change password"}
       </button>
       {open && (
         <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4">
           <label className={labelClass}>
-            Текуща парола
+            Current password
             <input
               type="password"
               required
@@ -77,7 +77,7 @@ export function ChangePasswordSection() {
             />
           </label>
           <label className={labelClass}>
-            Нова парола (мин. 8 символа)
+            New password (min. 8 characters)
             <input
               type="password"
               required
@@ -88,7 +88,7 @@ export function ChangePasswordSection() {
             />
           </label>
           <label className={labelClass}>
-            Повтори новата парола
+            Confirm new password
             <input
               type="password"
               required
@@ -105,7 +105,7 @@ export function ChangePasswordSection() {
           )}
           {success && (
             <p className="border border-[#a7f3d0] bg-[#ecfdf5] px-3 py-2 text-sm text-[#047857]">
-              Паролата е сменена успешно.
+              Password changed successfully.
             </p>
           )}
           <button
@@ -113,7 +113,7 @@ export function ChangePasswordSection() {
             disabled={saving}
             className="self-start h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
           >
-            {saving ? "Запис…" : "Смени паролата"}
+            {saving ? "Saving…" : "Change password"}
           </button>
         </form>
       )}

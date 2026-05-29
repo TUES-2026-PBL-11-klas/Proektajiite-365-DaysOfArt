@@ -8,14 +8,26 @@ type Comment = {
   user_id: string;
   content: string;
   created_at: string;
+  user?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  } | null;
 };
 
 type Props = {
   submissionId: string;
   userId: string;
+  isOwner?: boolean;
+  isToday?: boolean;
 };
 
-export default function CommentSection({ submissionId, userId }: Props) {
+export default function CommentSection({
+  submissionId,
+  userId,
+  isOwner = false,
+  isToday = true,
+}: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +57,15 @@ export default function CommentSection({ submissionId, userId }: Props) {
   async function postComment() {
     if (!content.trim()) return;
     if (!userId) {
-      setError("Enter your User UUID first");
+      setError("Sign in to comment.");
+      return;
+    }
+    if (!isToday) {
+      setError("You can only comment on today's drawings.");
+      return;
+    }
+    if (isOwner) {
+      setError("You cannot comment on your own drawing.");
       return;
     }
 
@@ -64,14 +84,14 @@ export default function CommentSection({ submissionId, userId }: Props) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error ?? "Failed to post comment");
+        throw new Error(data.error ?? "The comment was not published.");
       }
 
       const data = await response.json();
       setComments((prev) => [...prev, data.comment]);
       setContent("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to post comment");
+      setError(err instanceof Error ? err.message : "The comment was not published.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +115,7 @@ export default function CommentSection({ submissionId, userId }: Props) {
               className="border border-[#d8d3c7] bg-white px-3 py-2"
             >
               <p className="text-xs font-medium text-[#7c3aed]">
-                {c.user_id.slice(0, 8)}…
+                {c.user?.display_name || c.user?.username || "User"}
               </p>
               <p className="mt-0.5 text-sm text-[#18181b]">{c.content}</p>
               <p className="mt-1 text-xs text-[#a1a1aa]">
@@ -112,8 +132,14 @@ export default function CommentSection({ submissionId, userId }: Props) {
       <div className="flex gap-2">
         <input
           className="h-9 flex-1 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-          placeholder={userId ? "Write a comment…" : "Enter User UUID first"}
-          disabled={!userId}
+          placeholder={
+            !userId
+              ? "Sign in to comment"
+              : isOwner
+                ? "You cannot comment on your own drawing"
+                : "Write a comment…"
+          }
+          disabled={!userId || isOwner || !isToday}
           maxLength={500}
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -121,12 +147,17 @@ export default function CommentSection({ submissionId, userId }: Props) {
         />
         <button
           onClick={postComment}
-          disabled={loading || !userId || !content.trim()}
+          disabled={loading || !userId || isOwner || !isToday || !content.trim()}
           className="h-9 bg-[#18181b] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Post
         </button>
       </div>
+      {userId && !isOwner && !isToday && (
+        <p className="text-xs text-[#71717a]">
+          Comments are only active for today&apos;s drawings.
+        </p>
+      )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );

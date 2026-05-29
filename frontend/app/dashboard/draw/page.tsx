@@ -1,10 +1,19 @@
 "use client";
 
-import { FormEvent, PointerEvent, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  PointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
-import { API_BASE } from "@/lib/api";
+import { apiFetch, API_BASE } from "@/lib/api";
+import type { Organization } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -42,15 +51,16 @@ type DailyPrompt = {
 
 function DrawBoard() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const drawingRef = useRef(false);
 
   const [dailyPrompt, setDailyPrompt] = useState<DailyPrompt | null>(null);
-  const [status, setStatus] = useState("Зареждане на темата…");
+  const [status, setStatus] = useState("");
   const [color, setColor] = useState(colors[0]);
   const [brushSize, setBrushSize] = useState(8);
-  // Pre-filled from auth; user can still override.
   const [userId, setUserId] = useState(user?.id ?? "");
   const [organizationId, setOrganizationId] = useState("");
   const [caption, setCaption] = useState("");
@@ -59,6 +69,36 @@ function DrawBoard() {
   useEffect(() => {
     if (user?.id) setUserId(user.id);
   }, [user]);
+
+  // Resolve the selected organization from the dashboard dropdown.
+  useEffect(() => {
+    const queryOrgId = searchParams.get("organization_id") ?? "";
+    const savedOrgId =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("365art_selected_org_id") ?? ""
+        : "";
+
+    apiFetch<{ organizations: Organization[] }>("/api/organizations", { auth: false })
+      .then((data) => {
+        const organizations = data.organizations ?? [];
+        const nextOrgId =
+          (queryOrgId && organizations.some((org) => org.id === queryOrgId)
+            ? queryOrgId
+            : "") ||
+          (savedOrgId && organizations.some((org) => org.id === savedOrgId)
+            ? savedOrgId
+            : "") ||
+          organizations[0]?.id ||
+          "";
+        setOrganizationId(nextOrgId);
+        if (nextOrgId && typeof window !== "undefined") {
+          window.localStorage.setItem("365art_selected_org_id", nextOrgId);
+        }
+      })
+      .catch(() => {
+        setOrganizationId(queryOrgId || savedOrgId);
+      });
+  }, [searchParams]);
 
   // Initialise the canvas.
   useEffect(() => {
@@ -79,22 +119,22 @@ function DrawBoard() {
 
   // Load today's prompt whenever the organisation changes.
   useEffect(() => {
-    setStatus("Зареждане на темата…");
+    setStatus("Loading prompt…");
     const query = organizationId
       ? `?organization_id=${encodeURIComponent(organizationId)}`
       : "";
     fetch(`${API_BASE}/api/prompts/daily${query}`)
       .then((r) => {
-        if (!r.ok) throw new Error("Темата не е налична");
+        if (!r.ok) throw new Error("Prompt is unavailable");
         return r.json();
       })
       .then((d) => {
         setDailyPrompt(d.daily_prompt);
-        setStatus("Готово");
+        setStatus("");
       })
       .catch(() => {
         setDailyPrompt(null);
-        setStatus("Няма тема за тази организация");
+        setStatus("There is no prompt for this organization");
       });
   }, [organizationId]);
 
@@ -143,6 +183,42 @@ function DrawBoard() {
     const rect = canvas.getBoundingClientRect();
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, rect.width, rect.height);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function importImage(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setStatus("Please choose an image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (!canvas || !ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        const scale = Math.min(rect.width / image.width, rect.height / image.height);
+        const width = image.width * scale;
+        const height = image.height * scale;
+        const x = (rect.width - width) / 2;
+        const y = (rect.height - height) / 2;
+        ctx.drawImage(image, x, y, width, height);
+        setStatus("Image loaded.");
+      };
+      image.src = String(reader.result);
+    };
+    reader.onerror = () => setStatus("The image could not be loaded.");
+    reader.readAsDataURL(file);
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -150,14 +226,31 @@ function DrawBoard() {
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const canvas = canvasRef.current;
-    if (!canvas || !dailyPrompt) return;
-    setStatus("Публикуване…");
+    const currentUserId = user?.id || userId;
+
+    if (!canvas) {
+      setStatus("The drawing board is not loaded.");
+      return;
+    }
+    if (!dailyPrompt) {
+      setStatus("No daily prompt is loaded.");
+      return;
+    }
+    if (!currentUserId) {
+      setStatus("The user is not loaded. Sign in again.");
+      return;
+    }
+    if (!organizationId) {
+      setStatus("Select an organization from the dashboard before publishing.");
+      return;
+    }
+    setStatus("Publishing…");
     try {
       const res = await fetch(`${API_BASE}/api/submissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: userId,
+          user_id: currentUserId,
           organization_id: organizationId,
           prompt_id: dailyPrompt.prompt.id,
           image_data: canvas.toDataURL("image/png"),
@@ -166,11 +259,11 @@ function DrawBoard() {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error ?? "Грешка при публикуване");
+        throw new Error(d.error ?? "Publishing failed");
       }
-      setStatus("Публикувано!");
+      setStatus("Published!");
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Грешка при публикуване");
+      setStatus(err instanceof Error ? err.message : "Publishing failed");
     }
   }
 
@@ -185,26 +278,16 @@ function DrawBoard() {
               365 DaysOfArt
             </p>
             <h1 className="mt-1 text-3xl font-semibold text-[#18181b]">
-              Дъска за рисуване
+              Drawing Board
             </h1>
           </div>
 
           <div className="flex items-end gap-3">
-            {/* Org filter only (user ID pre-filled from auth) */}
-            <label className="text-sm font-medium text-[#3f3f46]">
-              Организация
-              <input
-                className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-                placeholder="UUID на организацията"
-                value={organizationId}
-                onChange={(e) => setOrganizationId(e.target.value)}
-              />
-            </label>
             <Link
               href="/dashboard"
               className="inline-flex h-10 items-center border border-[#c8c2b6] bg-white px-4 text-sm font-medium text-[#18181b] hover:border-[#18181b] whitespace-nowrap"
             >
-              ← Табло
+              ← Dashboard
             </Link>
           </div>
         </header>
@@ -218,14 +301,14 @@ function DrawBoard() {
             {/* Prompt */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-                Тема за днес
+                Today&apos;s prompt
               </p>
               <h2 className="mt-2 text-xl font-semibold text-[#18181b]">
-                {dailyPrompt?.prompt.title ?? "Темата не е налична"}
+                {dailyPrompt?.prompt.title ?? "Prompt is unavailable"}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[#52525b]">
                 {dailyPrompt?.prompt.description ??
-                  "Създай тема в бекенда или смени организацията."}
+                  "Create a prompt in the backend or switch organizations."}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-[#3f3f46]">
                 {dailyPrompt?.prompt.category && (
@@ -244,13 +327,13 @@ function DrawBoard() {
             {/* Color palette */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-                Цвят
+                Color
               </p>
               <div className="mt-2 grid grid-cols-6 gap-2">
                 {colors.map((swatch) => (
                   <button
                     key={swatch}
-                    aria-label={`Цвят ${swatch}`}
+                    aria-label={`Color ${swatch}`}
                     type="button"
                     onClick={() => setColor(swatch)}
                     style={{ backgroundColor: swatch }}
@@ -265,13 +348,13 @@ function DrawBoard() {
             {/* Brush size */}
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-                Четка
+                Brush
               </p>
               <div className="mt-2 grid grid-cols-4 gap-2">
                 {brushSizes.map((size) => (
                   <button
                     key={size}
-                    aria-label={`${size}px четка`}
+                    aria-label={`${size}px brush`}
                     type="button"
                     onClick={() => setBrushSize(size)}
                     className={`flex h-10 items-center justify-center border bg-white ${
@@ -285,6 +368,23 @@ function DrawBoard() {
                   </button>
                 ))}
               </div>
+            </section>
+
+            {/* Image upload */}
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
+                Image
+              </p>
+              <label className="mt-2 flex h-10 cursor-pointer items-center justify-center border border-[#c8c2b6] bg-white px-3 text-sm font-medium text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed]">
+                Attach an image for the prompt
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={importImage}
+                />
+              </label>
             </section>
           </aside>
 
@@ -302,7 +402,7 @@ function DrawBoard() {
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
               <label className="text-sm font-medium text-[#3f3f46]">
-                Надпис
+                Caption
                 <input
                   className="mt-1 h-11 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
                   maxLength={280}
@@ -315,18 +415,31 @@ function DrawBoard() {
                 onClick={clearCanvas}
                 className="h-11 border border-[#18181b] bg-white px-5 text-sm font-semibold text-[#18181b] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Изчисти
+                Clear
               </button>
               <button
                 type="submit"
-                disabled={!dailyPrompt || !userId || !organizationId}
-                className="h-11 bg-[#18181b] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={status === "Publishing…"}
+                className="h-11 bg-[#18181b] px-5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
               >
-                Публикувай
+                {status === "Publishing…" ? "Publishing…" : "Publish"}
               </button>
             </div>
 
-            <p className="min-h-6 text-sm font-medium text-[#52525b]">{status}</p>
+            {status && (
+              <p className="min-h-6 text-sm font-medium text-[#52525b]">
+                {status}
+              </p>
+            )}
+            {(!dailyPrompt || !userId || !organizationId) && (
+              <p className="text-xs text-[#b91c1c]">
+                {!dailyPrompt
+                  ? "No daily prompt is loaded."
+                  : !userId
+                    ? "The user is not loaded."
+                    : "No organization is selected from the dashboard."}
+              </p>
+            )}
           </form>
         </div>
       </section>

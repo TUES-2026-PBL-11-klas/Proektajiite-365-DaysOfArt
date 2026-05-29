@@ -13,7 +13,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }, [loading, user, router]);
 
   if (loading) {
-    return <p className="p-6 text-zinc-500">Зареждане…</p>;
+    return <p className="p-6 text-zinc-500">Loading…</p>;
   }
   if (!user) return null;
   return <>{children}</>;

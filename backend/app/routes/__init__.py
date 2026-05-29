@@ -11,6 +11,11 @@ from ..container import (
     make_submission_service,
 )
 from ..exceptions import AppError, NotFoundError
+from ..extensions import db
+from ..models.organization import Organization
+from ..models.topic import Topic
+from ..models.user import User
+from ..utils import to_uuid
 
 main = Blueprint("main", __name__)
 
@@ -29,7 +34,7 @@ def _parse_page_params(args):
 
 def _paginated(items, total, page, per_page):
     return {
-        "submissions": [s.to_dict() for s in items],
+        "submissions": [_submission_detail(s) for s in items],
         "total": total,
         "page": page,
         "per_page": per_page,
@@ -40,6 +45,59 @@ def _paginated(items, total, page, per_page):
 def _parse_date(args, key="date"):
     raw = _optional(args.get(key))
     return date_type.fromisoformat(raw) if raw else None
+
+
+def _submission_detail(submission):
+    payload = submission.to_dict()
+    user = db.session.get(User, submission.user_id)
+    organization = db.session.get(Organization, submission.organization_id)
+    topic = db.session.get(Topic, submission.topic_id)
+
+    payload["artist"] = (
+        {
+            "id": str(user.id),
+            "username": user.username,
+            "display_name": user.display_name,
+        }
+        if user
+        else None
+    )
+    payload["organization"] = (
+        {"id": str(organization.id), "name": organization.name}
+        if organization
+        else None
+    )
+    payload["prompt"] = topic.to_dict() if topic else None
+    return payload
+
+
+def _comment_detail(comment):
+    payload = comment.to_dict()
+    user = db.session.get(User, comment.user_id)
+    payload["user"] = (
+        {
+            "id": str(user.id),
+            "username": user.username,
+            "display_name": user.display_name,
+        }
+        if user
+        else None
+    )
+    return payload
+
+
+def _user_detail(user):
+    return {
+        "id": str(user.id),
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "display_name": user.display_name,
+        "bio": user.bio,
+        "avatar_url": user.avatar_url,
+        "birth_date": user.birth_date.isoformat() if user.birth_date else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
 
 
 # --------------------------------------------------------------- error handlers
@@ -92,7 +150,7 @@ def get_submission(submission_id):
         raise NotFoundError("Submission not found")
     if not submission:
         raise NotFoundError("Submission not found")
-    return jsonify({"submission": submission.to_dict()})
+    return jsonify({"submission": _submission_detail(submission)})
 
 
 @main.route("/api/submissions/<submission_id>/similar", methods=["GET"])
@@ -119,16 +177,26 @@ def remove_like():
     return jsonify({"status": "unliked"}), 200
 
 
+@main.route("/api/submissions/<submission_id>/like-status", methods=["GET"])
+def get_like_status(submission_id):
+    user_id = _optional(request.args.get("user_id"))
+    try:
+        status = make_social_service().get_like_status(submission_id, user_id)
+    except ValueError:
+        raise NotFoundError("Submission not found")
+    return jsonify(status)
+
+
 @main.route("/api/comments", methods=["POST"])
 def add_comment():
     comment = make_social_service().add_comment(request.get_json(silent=True) or {})
-    return jsonify({"comment": comment.to_dict()}), 201
+    return jsonify({"comment": _comment_detail(comment)}), 201
 
 
 @main.route("/api/submissions/<submission_id>/comments", methods=["GET"])
 def get_comments(submission_id):
     comments = make_social_service().get_comments(submission_id)
-    return jsonify({"comments": [comment.to_dict() for comment in comments]})
+    return jsonify({"comments": [_comment_detail(comment) for comment in comments]})
 
 
 @main.route("/api/leaderboard", methods=["GET"])
@@ -136,10 +204,27 @@ def get_leaderboard():
     organization_id = _optional(request.args.get("organization_id"))
     limit = min(max(1, int(request.args.get("limit", 10))), 50)
     entries = make_social_service().get_leaderboard(organization_id, limit)
-    return jsonify({"leaderboard": entries})
+    enriched_entries = []
+    for entry in entries:
+        submission = make_submission_repository().get_by_id(entry["id"])
+        if submission:
+            enriched = _submission_detail(submission)
+            enriched["like_count"] = entry["like_count"]
+            enriched_entries.append(enriched)
+    return jsonify({"leaderboard": enriched_entries})
 
 
 # --------------------------------------------------------------- user endpoints
+
+@main.route("/api/users/<user_id>", methods=["GET"])
+def get_public_user(user_id):
+    try:
+        user = db.session.get(User, to_uuid(user_id))
+    except ValueError:
+        raise NotFoundError("User not found")
+    if not user:
+        raise NotFoundError("User not found")
+    return jsonify({"user": _user_detail(user)})
 
 @main.route("/api/users/<user_id>/submissions", methods=["GET"])
 def get_user_submissions(user_id):

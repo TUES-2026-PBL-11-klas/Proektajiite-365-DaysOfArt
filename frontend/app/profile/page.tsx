@@ -50,7 +50,7 @@ function ProfileContent() {
       await refresh();
       setEditing(false);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Грешка при запис");
+      setSaveError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -64,7 +64,7 @@ function ProfileContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7c3aed]">
           365 DaysOfArt
         </p>
-        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Профил</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Profile</h1>
 
         <section className="mt-6 mb-10 flex items-start gap-6 border border-[#d8d3c7] bg-white p-5">
           {user.avatar_url ? (
@@ -98,7 +98,7 @@ function ProfileContent() {
               onClick={() => (editing ? setEditing(false) : startEditing())}
               className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#7c3aed] hover:text-[#6d28d9]"
             >
-              {editing ? "Затвори" : "Редактирай профил"}
+              {editing ? "Close" : "Edit profile"}
             </button>
           </div>
         </section>
@@ -109,7 +109,7 @@ function ProfileContent() {
             className="mb-10 flex flex-col gap-4 border border-[#d8d3c7] bg-white p-5"
           >
             <label className={labelClass}>
-              Име за показване
+              Display name
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -117,7 +117,7 @@ function ProfileContent() {
               />
             </label>
             <label className={labelClass}>
-              Био
+              Bio
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -143,7 +143,7 @@ function ProfileContent() {
               disabled={saving}
               className="self-start h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
             >
-              {saving ? "Запис…" : "Запази"}
+              {saving ? "Saving…" : "Save"}
             </button>
           </form>
         )}
@@ -152,14 +152,14 @@ function ProfileContent() {
 
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-            Моите рисунки
+            My drawings
           </p>
           <h2 className="mt-1 mb-4 text-xl font-semibold text-[#18181b]">
-            История по дати
+            History by date
           </h2>
           {history.length === 0 ? (
             <p className="border border-dashed border-[#d8d3c7] bg-white px-5 py-8 text-center text-sm text-[#71717a]">
-              Все още нямаш качени рисунки. Започни от темата на деня!
+              You have not uploaded any drawings yet. Start with today&apos;s prompt.
             </p>
           ) : (
             <div className="flex flex-col gap-8">

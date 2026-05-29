@@ -8,6 +8,29 @@ import type { Organization } from "@/lib/types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
+const CURRENT_YEAR = new Date().getFullYear();
+const birthMonthOptions = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+const birthYearOptions = Array.from({ length: 121 }, (_, i) =>
+  String(CURRENT_YEAR - i),
+);
+
+function daysInMonth(year: string, month: string) {
+  if (!year || !month) return 31;
+  return new Date(Number(year), Number(month), 0).getDate();
+}
 
 function ageFromBirthDate(birthDate: string): number | null {
   if (!birthDate) return null;
@@ -38,7 +61,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
   const [organizationId, setOrganizationId] = useState("");
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +78,16 @@ export default function RegisterPage() {
       .catch(() => setOrgs([]));
   }, []);
 
+  const birthDate = useMemo(
+    () =>
+      birthYear && birthMonth && birthDay
+        ? `${birthYear}-${birthMonth}-${birthDay}`
+        : "",
+    [birthYear, birthMonth, birthDay],
+  );
+  const birthDateStarted = Boolean(birthYear || birthMonth || birthDay);
+  const birthDateComplete = Boolean(birthYear && birthMonth && birthDay);
+  const birthMaxDay = daysInMonth(birthYear, birthMonth);
   const age = useMemo(() => ageFromBirthDate(birthDate), [birthDate]);
 
   const matchingOrgs = useMemo(
@@ -67,29 +102,47 @@ export default function RegisterPage() {
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
     if (touched.username && username.trim().length < 3) {
-      e.username = "Минимум 3 символа";
+      e.username = "Minimum 3 characters";
     }
     if (touched.email && !EMAIL_RE.test(email)) {
-      e.email = "Невалиден имейл адрес";
+      e.email = "Invalid email address";
     }
     if (touched.password && password.length < 8) {
-      e.password = "Минимум 8 символа";
+      e.password = "Minimum 8 characters";
     }
-    if (touched.birthDate && birthDate) {
-      if (birthDate > TODAY_ISO) {
-        e.birthDate = "Датата не може да е в бъдещето";
+    if (touched.birthDate && birthDateStarted) {
+      if (!birthDateComplete) {
+        e.birthDate = "Choose day, month, and year";
+      } else if (birthDate > TODAY_ISO) {
+        e.birthDate = "The date cannot be in the future";
       } else if (age !== null && age > 120) {
-        e.birthDate = "Невалидна дата на раждане";
+        e.birthDate = "Invalid birth date";
       }
     }
     return e;
-  }, [touched, username, email, password, birthDate, age]);
+  }, [
+    touched,
+    username,
+    email,
+    password,
+    birthDateStarted,
+    birthDateComplete,
+    birthDate,
+    age,
+  ]);
 
   const formValid =
     username.trim().length >= 3 &&
     EMAIL_RE.test(email) &&
     password.length >= 8 &&
-    (!birthDate || (birthDate <= TODAY_ISO && (age ?? 0) <= 120));
+    (!birthDateStarted ||
+      (birthDateComplete && birthDate <= TODAY_ISO && (age ?? 0) <= 120));
+
+  useEffect(() => {
+    if (birthDay && Number(birthDay) > birthMaxDay) {
+      setBirthDay(String(birthMaxDay).padStart(2, "0"));
+    }
+  }, [birthDay, birthMaxDay]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -114,13 +167,13 @@ export default function RegisterPage() {
         } catch (err) {
           setError(
             err instanceof Error
-              ? `Регистрацията успешна, но: ${err.message}`
-              : "Регистрацията успешна, но присъединяването не успя."
+              ? `Registration succeeded, but: ${err.message}`
+              : "Registration succeeded, but joining the organization failed."
           );
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при регистрация");
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setSubmitting(false);
     }
@@ -138,10 +191,10 @@ export default function RegisterPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7c3aed]">
           365 DaysOfArt
         </p>
-        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Регистрация</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Register</h1>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <label className={labelClass}>
-            Потребителско име
+            Username
             <input
               required
               minLength={3}
@@ -154,7 +207,7 @@ export default function RegisterPage() {
           </label>
 
           <label className={labelClass}>
-            Имейл
+            Email
             <input
               type="email"
               required
@@ -167,7 +220,7 @@ export default function RegisterPage() {
           </label>
 
           <label className={labelClass}>
-            Парола (мин. 8 символа)
+            Password (min. 8 characters)
             <input
               type="password"
               required
@@ -181,7 +234,7 @@ export default function RegisterPage() {
           </label>
 
           <label className={labelClass}>
-            Име за показване (по избор)
+            Display name (optional)
             <input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -190,17 +243,53 @@ export default function RegisterPage() {
           </label>
 
           <label className={labelClass}>
-            Дата на раждане
-            <input
-              type="date"
-              max={TODAY_ISO}
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              {...field("birthDate")}
-              className={inputClass}
-            />
+            Birth date
+            <div className="mt-1 grid grid-cols-[1fr_1.35fr_1fr] gap-2">
+              <select
+                value={birthDay}
+                onBlur={() => setTouched((t) => ({ ...t, birthDate: true }))}
+                onChange={(e) => setBirthDay(e.target.value)}
+                className="h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Day</option>
+                {Array.from({ length: birthMaxDay }, (_, i) => {
+                  const day = String(i + 1).padStart(2, "0");
+                  return (
+                    <option key={day} value={day}>
+                      {day}
+                    </option>
+                  );
+                })}
+              </select>
+              <select
+                value={birthMonth}
+                onBlur={() => setTouched((t) => ({ ...t, birthDate: true }))}
+                onChange={(e) => setBirthMonth(e.target.value)}
+                className="h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Month</option>
+                {birthMonthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={birthYear}
+                onBlur={() => setTouched((t) => ({ ...t, birthDate: true }))}
+                onChange={(e) => setBirthYear(e.target.value)}
+                className="h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]"
+              >
+                <option value="">Year</option>
+                {birthYearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
             {age !== null && !errors.birthDate && (
-              <span className={hintClass}>Възраст: {age} г.</span>
+              <span className={hintClass}>Age: {age}</span>
             )}
             {errors.birthDate && (
               <span className={errorClass}>{errors.birthDate}</span>
@@ -209,10 +298,10 @@ export default function RegisterPage() {
 
           <label className={labelClass}>
             <span className="flex items-center justify-between">
-              Възрастова група
+              Age group
               {age !== null && matchingOrgs.length > 0 && !touched.organization && (
                 <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c3aed]">
-                  Авто-предложение
+                  Auto suggestion
                 </span>
               )}
             </span>
@@ -224,23 +313,23 @@ export default function RegisterPage() {
               }}
               className={inputClass}
             >
-              <option value="">— по-късно —</option>
+              <option value="">— later —</option>
               {orgs.map((o) => {
                 const compatible = age === null || orgMatchesAge(o, age);
                 return (
                   <option key={o.id} value={o.id} disabled={!compatible}>
                     {o.name}
                     {o.min_age !== null || o.max_age !== null
-                      ? ` (${o.min_age ?? "?"}–${o.max_age ?? "?"} г.)`
+                      ? ` (${o.min_age ?? "?"}–${o.max_age ?? "?"})`
                       : ""}
-                    {!compatible ? " — не отговаря" : ""}
+                    {!compatible ? " — not eligible" : ""}
                   </option>
                 );
               })}
             </select>
             {age !== null && matchingOrgs.length === 0 && orgs.length > 0 && (
               <span className={hintClass}>
-                Няма организация за тази възраст. Можеш да се присъединиш по-късно.
+                There is no organization for this age yet. You can join one later.
               </span>
             )}
           </label>
@@ -256,13 +345,13 @@ export default function RegisterPage() {
             disabled={submitting || !formValid}
             className="mt-2 h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
           >
-            {submitting ? "Създаване…" : "Създай акаунт"}
+            {submitting ? "Creating…" : "Create account"}
           </button>
         </form>
         <p className="mt-6 text-sm text-[#52525b]">
-          Имаш акаунт?{" "}
+          Already have an account?{" "}
           <Link href="/login" className="font-medium text-[#7c3aed] hover:underline">
-            Влез
+            Sign in
           </Link>
         </p>
       </div>

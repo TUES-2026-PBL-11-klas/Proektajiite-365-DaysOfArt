@@ -46,35 +46,44 @@ function buildFeedUrl(tab: Tab, userId: string, orgId: string, page: number): st
 
 function UploadPanel({
   userId,
-  organizations,
+  organizationId,
+  organizationName,
   onSuccess,
   onClose,
 }: {
   userId: string;
-  organizations: Organization[];
+  organizationId: string;
+  organizationName: string;
   onSuccess: () => void;
   onClose: () => void;
 }) {
-  const [orgId, setOrgId] = useState(organizations[0]?.id ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function submit() {
-    if (!file || !orgId) return;
+    if (!organizationId) {
+      setError("Select an organization before publishing.");
+      return;
+    }
+    if (!file) {
+      setError("Choose an image before publishing.");
+      fileRef.current?.click();
+      return;
+    }
     setStatus("uploading");
     setError("");
 
     try {
       // 1. Get today's prompt for the org.
       const promptRes = await fetch(
-        `${API_BASE}/api/prompts/daily?organization_id=${encodeURIComponent(orgId)}`
+        `${API_BASE}/api/prompts/daily?organization_id=${encodeURIComponent(organizationId)}`
       );
-      if (!promptRes.ok) throw new Error("Няма дневна тема за тази организация.");
+      if (!promptRes.ok) throw new Error("There is no daily prompt for this organization.");
       const promptData = await promptRes.json();
       const promptId: string = promptData.daily_prompt?.prompt?.id;
-      if (!promptId) throw new Error("Не намерихме ID на темата.");
+      if (!promptId) throw new Error("The prompt ID could not be found.");
 
       // 2. Read file as base-64 data URL.
       const imageData: string = await new Promise((resolve, reject) => {
@@ -87,7 +96,12 @@ function UploadPanel({
       // 3. Submit drawing.
       await apiFetch("/api/submissions", {
         method: "POST",
-        body: { user_id: userId, organization_id: orgId, prompt_id: promptId, image_data: imageData },
+        body: {
+          user_id: userId,
+          organization_id: organizationId,
+          prompt_id: promptId,
+          image_data: imageData,
+        },
       });
 
       setStatus("done");
@@ -96,7 +110,7 @@ function UploadPanel({
         onClose();
       }, 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при качване.");
+      setError(err instanceof Error ? err.message : "Upload failed.");
       setStatus("error");
     }
   }
@@ -105,43 +119,38 @@ function UploadPanel({
     <div className="border border-[#d8d3c7] bg-white p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-          Качи рисунка
+          Upload drawing
         </p>
         <button
           onClick={onClose}
           className="text-sm text-[#71717a] hover:text-[#18181b]"
         >
-          ✕ Затвори
+          × Close
         </button>
       </div>
 
-      {organizations.length > 0 && (
-        <label className="text-sm font-medium text-[#3f3f46]">
-          Организация
-          <select
-            value={orgId}
-            onChange={(e) => setOrgId(e.target.value)}
-            className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm text-[#18181b] outline-none focus:border-[#7c3aed]"
-          >
-            {organizations.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-        </label>
+      {organizationId ? (
+        <p className="border border-[#d8d3c7] bg-[#f7f5ef] px-3 py-2 text-sm text-[#3f3f46]">
+          Organization: <span className="font-semibold">{organizationName}</span>
+        </p>
+      ) : (
+        <p className="border border-[#fca5a5] bg-[#fef2f2] px-3 py-2 text-sm text-[#b91c1c]">
+          Select an organization from the dashboard dropdown before uploading.
+        </p>
       )}
 
       <label className="text-sm font-medium text-[#3f3f46]">
-        Снимка (PNG, JPG, WEBP)
+        Image (PNG, JPG, WEBP)
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
           className="mt-1 block w-full text-sm text-[#52525b] file:mr-4 file:border file:border-[#c8c2b6] file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-[#18181b] hover:file:border-[#7c3aed] hover:file:text-[#7c3aed]"
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setFile(e.target.files?.[0] ?? null)
-          }
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setFile(e.target.files?.[0] ?? null);
+            setError("");
+            if (status === "error") setStatus("idle");
+          }}
         />
       </label>
 
@@ -162,16 +171,16 @@ function UploadPanel({
 
       {status === "done" && (
         <p className="border border-[#6ee7b7] bg-[#ecfdf5] px-3 py-2 text-sm text-[#065f46]">
-          Рисунката е публикувана успешно!
+          Drawing published successfully!
         </p>
       )}
 
       <button
-        disabled={!file || !orgId || status === "uploading" || status === "done"}
+        disabled={status === "uploading" || status === "done"}
         onClick={submit}
         className="h-10 bg-[#18181b] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {status === "uploading" ? "Качване…" : "Публикувай"}
+        {status === "uploading" ? "Uploading…" : "Publish"}
       </button>
     </div>
   );
@@ -199,17 +208,33 @@ function Dashboard() {
   const abortRef = useRef<AbortController | null>(null);
   const userId = user?.id ?? "";
 
-  // Reset page on filter changes.
-  useEffect(() => {
-    setPage(1);
-  }, [tab, orgId]);
-
   // Load organizations once.
   useEffect(() => {
-    apiFetch<Organization[]>("/api/organizations", { auth: false })
-      .then((orgs) => setOrganizations(orgs))
+    apiFetch<{ organizations: Organization[] }>("/api/organizations", { auth: false })
+      .then((data) => {
+        const loadedOrganizations = data.organizations ?? [];
+        setOrganizations(loadedOrganizations);
+        const savedOrgId =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("365art_selected_org_id")
+            : "";
+        const nextOrgId =
+          savedOrgId && loadedOrganizations.some((org) => org.id === savedOrgId)
+            ? savedOrgId
+            : loadedOrganizations[0]?.id ?? "";
+        setOrgId(nextOrgId);
+      })
       .catch(() => {});
   }, []);
+
+  function selectOrganization(nextOrgId: string) {
+    setOrgId(nextOrgId);
+    setPage(1);
+    if (typeof window !== "undefined") {
+      if (nextOrgId) window.localStorage.setItem("365art_selected_org_id", nextOrgId);
+      else window.localStorage.removeItem("365art_selected_org_id");
+    }
+  }
 
   // Load today's prompt (daily tab only).
   useEffect(() => {
@@ -257,6 +282,8 @@ function Dashboard() {
     setData(null);
   }
 
+  const selectedOrganization = organizations.find((org) => org.id === orgId) ?? null;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
@@ -266,19 +293,18 @@ function Dashboard() {
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#7c3aed]">
             365 DaysOfArt
           </p>
-          <h1 className="mt-1 text-3xl font-semibold text-[#18181b]">Табло</h1>
+          <h1 className="mt-1 text-3xl font-semibold text-[#18181b]">Dashboard</h1>
         </div>
 
         {/* Org filter */}
         {organizations.length > 0 && (
           <label className="flex flex-col text-sm font-medium text-[#3f3f46] sm:flex-row sm:items-center sm:gap-3">
-            <span>Организация</span>
+            <span>Organization</span>
             <select
               value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
+              onChange={(e) => selectOrganization(e.target.value)}
               className="h-10 border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
             >
-              <option value="">Всички</option>
               {organizations.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.name}
@@ -302,23 +328,30 @@ function Dashboard() {
                   : "border-transparent text-[#71717a] hover:text-[#18181b]"
               }`}
             >
-              {t === "daily" ? "Дневен" : "Галерия"}
+              {t === "daily" ? "Daily" : "Gallery"}
             </button>
           ))}
         </div>
 
         <div className="flex gap-2 pb-2">
           <button
-            onClick={() => router.push("/dashboard/draw")}
+            onClick={() =>
+              router.push(
+                orgId
+                  ? `/dashboard/draw?organization_id=${encodeURIComponent(orgId)}`
+                  : "/dashboard/draw"
+              )
+            }
+            disabled={!orgId}
             className="h-9 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9]"
           >
-            Рисувай
+            Draw
           </button>
           <button
             onClick={() => setShowUpload((v) => !v)}
             className="h-9 border border-[#18181b] bg-white px-4 text-sm font-semibold text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed]"
           >
-            {showUpload ? "Скрий" : "Качи снимка"}
+            {showUpload ? "Hide" : "Upload image"}
           </button>
         </div>
       </div>
@@ -328,7 +361,8 @@ function Dashboard() {
         <div className="mt-4">
           <UploadPanel
             userId={userId}
-            organizations={organizations}
+            organizationId={orgId}
+            organizationName={selectedOrganization?.name ?? "selected organization"}
             onSuccess={refreshFeed}
             onClose={() => setShowUpload(false)}
           />
@@ -339,7 +373,7 @@ function Dashboard() {
       {tab === "daily" && prompt && (
         <div className="mt-5 border border-[#d8d3c7] bg-white px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7c3aed]">
-            Тема за днес
+            Today&apos;s prompt
           </p>
           <p className="mt-1 text-lg font-semibold text-[#18181b]">
             {prompt.prompt.title}
@@ -360,7 +394,7 @@ function Dashboard() {
       {/* Gallery description */}
       {tab === "gallery" && (
         <p className="mt-5 text-sm text-[#71717a]">
-          Всички рисунки, качени досега — подредени по препоръки специално за теб.
+          All uploaded drawings, ranked with recommendations for you.
         </p>
       )}
 
@@ -386,14 +420,14 @@ function Dashboard() {
         <div className="mt-16 flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-base font-medium text-[#3f3f46]">
             {tab === "daily"
-              ? "Никой не е рисувал днес още."
-              : "Галерията е празна — рисунките се появяват след края на деня."}
+              ? "No one has drawn today yet."
+              : "The gallery is empty. Drawings appear as people upload them."}
           </p>
           <button
             onClick={() => router.push("/dashboard/draw")}
             className="mt-2 h-10 bg-[#7c3aed] px-6 text-sm font-semibold text-white hover:bg-[#6d28d9]"
           >
-            Бъди първи — Рисувай
+            Be first — Draw
           </button>
         </div>
       )}
@@ -404,35 +438,37 @@ function Dashboard() {
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {submissions.map((sub) => (
               <li key={sub.id}>
-                <Link
-                  href={`/submissions/${sub.id}`}
-                  className="group block border border-[#d8d3c7] bg-white transition-shadow hover:shadow-md"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={submissionSrc(sub)}
-                    alt="Рисунка"
-                    className="aspect-square w-full object-cover"
-                    loading="lazy"
-                  />
+                <article className="group border border-[#d8d3c7] bg-white transition-shadow hover:shadow-md">
+                  <Link href={`/submissions/${sub.id}`} className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={submissionSrc(sub)}
+                      alt="Drawing"
+                      className="aspect-square w-full object-cover"
+                      loading="lazy"
+                    />
+                  </Link>
                   <div className="border-t border-[#d8d3c7] px-3 py-2">
-                    <p className="truncate text-xs font-medium text-[#3f3f46]">
-                      {sub.date}
-                    </p>
-                    {sub.caption && (
-                      <p className="mt-0.5 truncate text-xs text-[#71717a]">
-                        {sub.caption}
+                    <Link href={`/submissions/${sub.id}`} className="block">
+                      <p className="truncate text-xs font-medium text-[#3f3f46]">
+                        {sub.date}
                       </p>
-                    )}
+                      {sub.caption && (
+                        <p className="mt-0.5 truncate text-xs text-[#71717a]">
+                          {sub.caption}
+                        </p>
+                      )}
+                    </Link>
                     <Link
                       href={`/users/${sub.user_id}`}
-                      onClick={(e) => e.stopPropagation()}
                       className="mt-0.5 block truncate text-xs text-[#7c3aed] hover:underline"
                     >
-                      {sub.user_id.slice(0, 8)}…
+                      {sub.artist?.display_name ||
+                        sub.artist?.username ||
+                        "Artist"}
                     </Link>
                   </div>
-                </Link>
+                </article>
               </li>
             ))}
           </ul>
@@ -442,7 +478,7 @@ function Dashboard() {
             <div className="mt-8 flex items-center justify-between border-t border-[#d8d3c7] pt-4">
               <p className="text-sm text-[#71717a]">
                 {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)}{" "}
-                от {totalItems}
+                of {totalItems}
               </p>
               <div className="flex gap-2">
                 <button
@@ -450,14 +486,14 @@ function Dashboard() {
                   onClick={() => setPage((p) => p - 1)}
                   className="h-9 border border-[#c8c2b6] bg-white px-4 text-sm font-medium text-[#18181b] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Назад
+                  Previous
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                   className="h-9 border border-[#c8c2b6] bg-white px-4 text-sm font-medium text-[#18181b] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Напред
+                  Next
                 </button>
               </div>
             </div>

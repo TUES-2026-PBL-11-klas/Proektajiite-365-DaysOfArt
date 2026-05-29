@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "365 DaysOfArt",
-  description: "Социална мрежа за ежедневно рисуване",
+  description: "A social network for daily drawing",
 };
 
 export default function RootLayout({

@@ -13,7 +13,7 @@ export function Nav() {
           365 DaysOfArt
         </span>
         <span className="text-base font-semibold text-[#18181b]">
-          {user ? "Табло" : "Drawing Board"}
+          {user ? "Dashboard" : "Drawing Board"}
         </span>
       </Link>
 
@@ -21,13 +21,13 @@ export function Nav() {
         {user ? (
           <>
             <Link href="/dashboard" className="font-medium hover:text-[#7c3aed]">
-              Табло
+              Dashboard
             </Link>
             <Link href="/profile" className="font-medium hover:text-[#7c3aed]">
-              Профил
+              Profile
             </Link>
             <Link href="/organizations" className="font-medium hover:text-[#7c3aed]">
-              Организации
+              Organizations
             </Link>
             <span className="text-[#71717a]">{user.display_name || user.username}</span>
             {user.role === "admin" && (
@@ -39,19 +39,19 @@ export function Nav() {
               onClick={() => logout()}
               className="border border-[#c8c2b6] bg-white px-3 py-1 font-medium text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed]"
             >
-              Изход
+              Logout
             </button>
           </>
         ) : (
           <>
             <Link href="/login" className="font-medium hover:text-[#7c3aed]">
-              Вход
+              Login
             </Link>
             <Link
               href="/register"
               className="bg-[#7c3aed] px-4 py-2 font-semibold text-white hover:bg-[#6d28d9]"
             >
-              Регистрация
+              Register
             </Link>
           </>
         )}

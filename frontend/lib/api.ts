@@ -44,6 +44,22 @@ export type Submission = {
   submitted_at: string | null;
   created_at: string | null;
   caption: string | null;
+  artist?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  } | null;
+  organization?: {
+    id: string;
+    name: string;
+  } | null;
+  prompt?: {
+    id: string;
+    title: string;
+    description: string | null;
+    category: string | null;
+    tag: string | null;
+  } | null;
 };
 
 export type SubmissionPage = {

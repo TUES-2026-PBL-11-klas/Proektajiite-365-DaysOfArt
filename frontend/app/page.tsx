@@ -7,16 +7,16 @@ import { useAuth } from "@/lib/auth-context";
 
 const features = [
   {
-    title: "Дневна тема",
-    desc: "Всеки ден получаваш нова тема — рисувай директно в платформата или качи готова рисунка.",
+    title: "Daily prompt",
+    desc: "Get a new prompt every day, draw directly in the platform, or upload finished artwork.",
   },
   {
-    title: "Общност",
-    desc: "Виж какво са нарисували всички останали за деня. Открий таланти от твоята организация.",
+    title: "Community",
+    desc: "See how other artists interpret the same daily idea and discover talent in your organization.",
   },
   {
-    title: "Препоръки",
-    desc: "Персонализирана галерия с рисунки и художници, подходящи точно за теб.",
+    title: "Recommendations",
+    desc: "Explore a personalized gallery of drawings and artists matched to your interests.",
   },
 ];
 
@@ -32,7 +32,7 @@ export default function LandingPage() {
   if (loading || user) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-[#f7f5ef]">
-        <p className="text-sm text-[#71717a]">Зареждане…</p>
+        <p className="text-sm text-[#71717a]">Loading…</p>
       </div>
     );
   }
@@ -46,13 +46,13 @@ export default function LandingPage() {
           365 DaysOfArt
         </p>
         <h1 className="mt-4 text-5xl font-semibold leading-tight text-[#18181b] sm:text-6xl">
-          Рисувай всеки ден.
+          Draw every day.
           <br />
-          <span className="text-[#7c3aed]">Споделяй с общността.</span>
+          <span className="text-[#7c3aed]">Share with the community.</span>
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-7 text-[#52525b]">
-          Платформа за ежедневно рисуване — получи тема, нарисувай нещо красиво
-          и виж как другите интерпретират същата идея.
+          A daily drawing platform where artists receive a prompt, create artwork,
+          and see how others interpret the same idea.
         </p>
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -60,13 +60,13 @@ export default function LandingPage() {
             href="/register"
             className="h-12 bg-[#7c3aed] px-8 text-sm font-semibold text-white flex items-center hover:bg-[#6d28d9] transition-colors"
           >
-            Регистрирай се безплатно
+            Register for free
           </Link>
           <Link
             href="/login"
             className="h-12 border border-[#18181b] bg-white px-8 text-sm font-semibold text-[#18181b] flex items-center hover:border-[#7c3aed] hover:text-[#7c3aed] transition-colors"
           >
-            Влез в акаунта си
+            Sign in
           </Link>
         </div>
       </section>
@@ -77,10 +77,10 @@ export default function LandingPage() {
       {/* ── Features ── */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-          Какво предлага платформата
+          What the platform offers
         </p>
         <h2 className="mt-2 text-3xl font-semibold text-[#18181b]">
-          Всичко, от което се нуждаеш
+          Everything you need
         </h2>
 
         <ul className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -102,13 +102,13 @@ export default function LandingPage() {
       <div className="border-t border-[#d8d3c7]">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 px-4 py-16 text-center sm:px-6 lg:px-8">
           <h2 className="text-2xl font-semibold text-[#18181b]">
-            Готов да започнеш?
+            Ready to start?
           </h2>
           <Link
             href="/register"
             className="h-12 bg-[#18181b] px-8 text-sm font-semibold text-white flex items-center hover:bg-[#27272a] transition-colors"
           >
-            Създай акаунт
+            Create an account
           </Link>
         </div>
       </div>

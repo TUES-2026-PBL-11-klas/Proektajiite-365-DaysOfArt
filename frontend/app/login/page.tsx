@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при вход");
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setSubmitting(false);
     }
@@ -30,10 +30,10 @@ export default function LoginPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7c3aed]">
           365 DaysOfArt
         </p>
-        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Вход</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-[#18181b]">Login</h1>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <label className="text-sm font-medium text-[#3f3f46]">
-            Имейл
+            Email
             <input
               type="email"
               required
@@ -43,7 +43,7 @@ export default function LoginPage() {
             />
           </label>
           <label className="text-sm font-medium text-[#3f3f46]">
-            Парола
+            Password
             <input
               type="password"
               required
@@ -62,13 +62,13 @@ export default function LoginPage() {
             disabled={submitting}
             className="mt-2 h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
           >
-            {submitting ? "Влизане…" : "Влез"}
+            {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
         <p className="mt-6 text-sm text-[#52525b]">
-          Нямаш акаунт?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register" className="font-medium text-[#7c3aed] hover:underline">
-            Регистрирай се
+            Register
           </Link>
         </p>
       </div>

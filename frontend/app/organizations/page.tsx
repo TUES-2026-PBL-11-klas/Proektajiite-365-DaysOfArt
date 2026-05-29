@@ -51,7 +51,7 @@ function CreateOrgForm({ onCreated }: { onCreated: () => void }) {
       setForm(EMPTY_FORM);
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при създаване");
+      setError(err instanceof Error ? err.message : "Create failed");
     } finally {
       setSubmitting(false);
     }
@@ -66,11 +66,11 @@ function CreateOrgForm({ onCreated }: { onCreated: () => void }) {
         Admin
       </p>
       <h2 className="text-lg font-semibold text-[#18181b]">
-        Създай нова организация
+        Create new organization
       </h2>
       <input
         required
-        placeholder="Име"
+        placeholder="Name"
         value={form.name}
         onChange={(e) => setForm({ ...form, name: e.target.value })}
         className={inputClass}
@@ -80,7 +80,7 @@ function CreateOrgForm({ onCreated }: { onCreated: () => void }) {
           type="number"
           min={0}
           max={120}
-          placeholder="Мин. възраст"
+          placeholder="Min. age"
           value={form.min_age}
           onChange={(e) => setForm({ ...form, min_age: e.target.value })}
           className={inputClass}
@@ -89,14 +89,14 @@ function CreateOrgForm({ onCreated }: { onCreated: () => void }) {
           type="number"
           min={0}
           max={120}
-          placeholder="Макс. възраст"
+          placeholder="Max. age"
           value={form.max_age}
           onChange={(e) => setForm({ ...form, max_age: e.target.value })}
           className={inputClass}
         />
       </div>
       <textarea
-        placeholder="Описание (по избор)"
+        placeholder="Description (optional)"
         value={form.description}
         onChange={(e) => setForm({ ...form, description: e.target.value })}
         rows={2}
@@ -112,7 +112,7 @@ function CreateOrgForm({ onCreated }: { onCreated: () => void }) {
         disabled={submitting}
         className="self-start h-10 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
       >
-        {submitting ? "Запис…" : "Създай"}
+        {submitting ? "Saving…" : "Create"}
       </button>
     </form>
   );
@@ -147,7 +147,7 @@ function EditOrgForm({
       });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при запис");
+      setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSubmitting(false);
     }
@@ -169,7 +169,7 @@ function EditOrgForm({
           type="number"
           min={0}
           max={120}
-          placeholder="Мин."
+          placeholder="Min."
           value={form.min_age}
           onChange={(e) => setForm({ ...form, min_age: e.target.value })}
           className={inputClass}
@@ -178,7 +178,7 @@ function EditOrgForm({
           type="number"
           min={0}
           max={120}
-          placeholder="Макс."
+          placeholder="Max."
           value={form.max_age}
           onChange={(e) => setForm({ ...form, max_age: e.target.value })}
           className={inputClass}
@@ -201,14 +201,14 @@ function EditOrgForm({
           disabled={submitting}
           className="h-9 bg-[#7c3aed] px-4 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
         >
-          {submitting ? "Запис…" : "Запази"}
+          {submitting ? "Saving…" : "Save"}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="h-9 border border-[#c8c2b6] bg-white px-4 text-sm font-medium text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed]"
         >
-          Откажи
+          Cancel
         </button>
       </div>
     </form>
@@ -235,7 +235,7 @@ function OrganizationsContent() {
       setAll(allRes.organizations);
       setMine(mineRes.organizations);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при зареждане");
+      setError(err instanceof Error ? err.message : "Load failed");
     } finally {
       setLoading(false);
     }
@@ -260,7 +260,7 @@ function OrganizationsContent() {
       await apiFetch(`/api/organizations/${id}/join`, { method: "POST" });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при присъединяване");
+      setError(err instanceof Error ? err.message : "Join failed");
     } finally {
       setBusyId(null);
     }
@@ -273,21 +273,21 @@ function OrganizationsContent() {
       await apiFetch(`/api/organizations/${id}/leave`, { method: "DELETE" });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при напускане");
+      setError(err instanceof Error ? err.message : "Leave failed");
     } finally {
       setBusyId(null);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Сигурен ли си че искаш да изтриеш тази организация?")) return;
+    if (!confirm("Are you sure you want to delete this organization?")) return;
     setBusyId(id);
     setError(null);
     try {
       await apiFetch(`/api/organizations/${id}`, { method: "DELETE" });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Грешка при триене");
+      setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setBusyId(null);
     }
@@ -300,7 +300,7 @@ function OrganizationsContent() {
           365 DaysOfArt
         </p>
         <h1 className="mt-1 mb-6 text-2xl font-semibold text-[#18181b]">
-          Организации
+          Organizations
         </h1>
 
         {isAdmin && <CreateOrgForm onCreated={load} />}
@@ -311,12 +311,12 @@ function OrganizationsContent() {
           </p>
         )}
         {loading ? (
-          <p className="text-sm text-[#71717a]">Зареждане…</p>
+          <p className="text-sm text-[#71717a]">Loading…</p>
         ) : all.length === 0 ? (
           <p className="border border-dashed border-[#d8d3c7] bg-white px-5 py-8 text-center text-sm text-[#71717a]">
             {isAdmin
-              ? "Все още няма организации. Създай първата от формата по-горе."
-              : "Все още няма създадени организации."}
+              ? "No organizations yet. Create the first one using the form above."
+              : "No organizations have been created yet."}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -324,8 +324,8 @@ function OrganizationsContent() {
               const isMember = memberIds.has(org.id);
               const ageRange =
                 org.min_age !== null || org.max_age !== null
-                  ? `${org.min_age ?? "?"}–${org.max_age ?? "?"} г.`
-                  : "всички възрасти";
+                  ? `${org.min_age ?? "?"}–${org.max_age ?? "?"}`
+                  : "all ages";
               return (
                 <li
                   key={org.id}
@@ -350,7 +350,7 @@ function OrganizationsContent() {
                           disabled={busyId === org.id}
                           className="h-9 border border-[#c8c2b6] bg-white px-3 text-sm font-medium text-[#18181b] hover:border-[#7c3aed] hover:text-[#7c3aed] disabled:opacity-60"
                         >
-                          {busyId === org.id ? "…" : "Напусни"}
+                          {busyId === org.id ? "…" : "Leave"}
                         </button>
                       ) : (
                         <button
@@ -358,7 +358,7 @@ function OrganizationsContent() {
                           disabled={busyId === org.id}
                           className="h-9 bg-[#7c3aed] px-3 text-sm font-semibold text-white hover:bg-[#6d28d9] disabled:opacity-60"
                         >
-                          {busyId === org.id ? "…" : "Присъедини се"}
+                          {busyId === org.id ? "…" : "Join"}
                         </button>
                       )}
                       {isAdmin && (
@@ -369,14 +369,14 @@ function OrganizationsContent() {
                             }
                             className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7c3aed] hover:text-[#6d28d9]"
                           >
-                            {editingId === org.id ? "Откажи" : "Редактирай"}
+                            {editingId === org.id ? "Cancel" : "Edit"}
                           </button>
                           <button
                             onClick={() => remove(org.id)}
                             disabled={busyId === org.id}
                             className="text-xs font-semibold uppercase tracking-[0.12em] text-[#b91c1c] hover:text-[#7f1d1d] disabled:opacity-60"
                           >
-                            Изтрий
+                            Delete
                           </button>
                         </div>
                       )}

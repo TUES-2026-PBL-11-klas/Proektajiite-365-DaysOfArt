@@ -39,6 +39,18 @@ class SocialRepository:
         db.session.delete(like)
         db.session.commit()
 
+    def is_liked_by_user(self, user_id, submission_id):
+        if not user_id:
+            return False
+        return (
+            Like.query.filter_by(
+                user_id=_uuid(user_id), submission_id=_uuid(submission_id)
+            ).first()
+            is not None
+        )
+
+    def count_likes(self, submission_id):
+        return Like.query.filter_by(submission_id=_uuid(submission_id)).count()
 
     def add_comment(self, user_id, submission_id, content):
         comment = Comment(

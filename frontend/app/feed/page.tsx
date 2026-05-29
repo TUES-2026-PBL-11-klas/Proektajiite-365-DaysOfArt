@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { API_BASE, Submission, SubmissionPage, submissionSrc } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { apiFetch, API_BASE, Submission, SubmissionPage, submissionSrc } from "@/lib/api";
+import type { Organization } from "@/lib/types";
 
 type Tab = "daily" | "gallery";
 
@@ -42,19 +44,39 @@ function buildEndpoint(
 }
 
 export default function FeedPage() {
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("daily");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState("");
-  const [userId, setUserId] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<SubmissionPage | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const userId = user?.id ?? "";
 
   // Reset to page 1 when any filter changes.
   useEffect(() => {
     setPage(1);
   }, [tab, organizationId, userId]);
+
+  useEffect(() => {
+    apiFetch<{ organizations: Organization[] }>("/api/organizations", { auth: false })
+      .then((data) => {
+        const loadedOrganizations = data.organizations ?? [];
+        setOrganizations(loadedOrganizations);
+        const savedOrgId =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("365art_selected_org_id")
+            : "";
+        const nextOrgId =
+          savedOrgId && loadedOrganizations.some((org) => org.id === savedOrgId)
+            ? savedOrgId
+            : loadedOrganizations[0]?.id ?? "";
+        setOrganizationId(nextOrgId);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     abortRef.current?.abort();
@@ -89,6 +111,14 @@ export default function FeedPage() {
   const totalItems = data?.total ?? 0;
   const perPage = data?.per_page ?? 20;
 
+  function selectOrganization(nextOrgId: string) {
+    setOrganizationId(nextOrgId);
+    if (typeof window !== "undefined") {
+      if (nextOrgId) window.localStorage.setItem("365art_selected_org_id", nextOrgId);
+      else window.localStorage.removeItem("365art_selected_org_id");
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#171717]">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
@@ -102,24 +132,21 @@ export default function FeedPage() {
             <h1 className="mt-1 text-3xl font-semibold text-[#18181b]">Feed</h1>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-1">
             <label className="text-sm font-medium text-[#3f3f46]">
-              User ID
-              <input
+              Organization
+              <select
                 className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-                placeholder="Paste your UUID for personalised feed"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              />
-            </label>
-            <label className="text-sm font-medium text-[#3f3f46]">
-              Organisation
-              <input
-                className="mt-1 h-10 w-full border border-[#c8c2b6] bg-white px-3 text-sm outline-none focus:border-[#7c3aed]"
-                placeholder="Organisation UUID (optional)"
                 value={organizationId}
-                onChange={(e) => setOrganizationId(e.target.value)}
-              />
+                onChange={(e) => selectOrganization(e.target.value)}
+              >
+                <option value="">All organizations</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </header>
@@ -174,7 +201,7 @@ export default function FeedPage() {
                 : "The gallery fills up as days complete. Come back tomorrow."}
             </p>
             <Link
-              href="/"
+              href="/dashboard/draw"
               className="mt-4 h-10 border border-[#18181b] bg-white px-5 text-sm font-semibold text-[#18181b] flex items-center"
             >
               Open Drawing Board

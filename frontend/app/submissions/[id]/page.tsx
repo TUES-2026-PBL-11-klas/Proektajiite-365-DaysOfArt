@@ -105,6 +105,17 @@ export default function SubmissionPage() {
   }
 
   const currentUserId = user?.id ?? "";
+  const artistName =
+    submission.artist?.display_name ||
+    submission.artist?.username ||
+    `Artist ${submission.user_id.slice(0, 8)}`;
+  const organizationName =
+    submission.organization?.name ||
+    `Organization ${submission.organization_id.slice(0, 8)}`;
+  const promptTitle =
+    submission.prompt?.title || `Prompt ${submission.topic_id.slice(0, 8)}`;
+  const isOwner = Boolean(currentUserId && currentUserId === submission.user_id);
+  const isToday = submission.date === new Date().toISOString().slice(0, 10);
 
   return (
     <main className="min-h-screen bg-[#f7f5ef] text-[#171717]">
@@ -127,7 +138,7 @@ export default function SubmissionPage() {
               href="/feed"
               className="inline-flex h-10 items-center border border-[#c8c2b6] bg-white px-4 text-sm font-medium text-[#18181b] hover:border-[#18181b]"
             >
-              Back to Feed
+              Back to Dashboard
             </Link>
           </div>
         </header>
@@ -153,9 +164,9 @@ export default function SubmissionPage() {
               <MetaRow label="Artist">
                 <Link
                   href={`/users/${submission.user_id}`}
-                  className="break-all text-sm font-medium text-[#7c3aed] hover:underline"
+                  className="text-sm font-medium text-[#7c3aed] hover:underline"
                 >
-                  {submission.user_id}
+                  {artistName}
                 </Link>
               </MetaRow>
 
@@ -167,36 +178,39 @@ export default function SubmissionPage() {
                 </MetaRow>
               )}
 
-              <MetaRow label="Organisation">
-                <p className="break-all text-sm text-[#52525b]">
-                  {submission.organization_id}
-                </p>
+              <MetaRow label="Organization">
+                <p className="text-sm text-[#52525b]">{organizationName}</p>
               </MetaRow>
 
               <MetaRow label="Prompt">
-                <p className="break-all text-sm text-[#52525b]">
-                  {submission.topic_id}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-[#18181b]">{promptTitle}</p>
+                  {submission.prompt?.description && (
+                    <p className="mt-1 text-sm leading-6 text-[#52525b]">
+                      {submission.prompt.description}
+                    </p>
+                  )}
+                </div>
               </MetaRow>
             </div>
 
             <div className="border border-[#d8d3c7] bg-white p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#71717a]">
-                Like
+                Likes
               </p>
-              <LikeButton submissionId={submission.id} userId={currentUserId} />
-              {!currentUserId && (
-                <p className="mt-2 text-xs text-[#a1a1aa]">
-                  Log in to like today&apos;s drawings.
-                </p>
-              )}
+              <LikeButton
+                submissionId={submission.id}
+                userId={currentUserId}
+                isOwner={isOwner}
+                isToday={isToday}
+              />
             </div>
 
             <div className="mt-auto border-t border-[#d8d3c7] pt-4">
               <Link
                 href={`/users/${submission.user_id}`}
-                className="inline-flex h-10 w-full items-center justify-center border border-[#7c3aed] px-4 text-sm font-semibold text-[#7c3aed] transition-colors hover:bg-[#7c3aed] hover:text-white"
-              >
+              className="inline-flex h-10 w-full items-center justify-center border border-[#7c3aed] px-4 text-sm font-semibold text-[#7c3aed] transition-colors hover:bg-[#7c3aed] hover:text-white"
+            >
                 View artist&apos;s drawings
               </Link>
             </div>
@@ -204,7 +218,12 @@ export default function SubmissionPage() {
         </div>
 
         <section className="border border-[#d8d3c7] bg-white p-5">
-          <CommentSection submissionId={submission.id} userId={currentUserId} />
+          <CommentSection
+            submissionId={submission.id}
+            userId={currentUserId}
+            isOwner={isOwner}
+            isToday={isToday}
+          />
         </section>
 
         <section className="border-t border-[#d8d3c7] pt-8">
