@@ -6,6 +6,7 @@ from ..container import (
     make_prompt_scheduler,
     make_prompt_service,
     make_recommendation_service,
+    make_social_service,
     make_submission_repository,
     make_submission_service,
 )
@@ -102,6 +103,40 @@ def get_similar_drawings(submission_id):
     except ValueError:
         raise NotFoundError("Submission not found")
     return jsonify({"similar_drawings": [s.to_dict() for s in submissions]})
+
+
+# ----------------------------------------------------------------- social
+
+@main.route("/api/likes", methods=["POST"])
+def add_like():
+    make_social_service().add_like(request.get_json(silent=True) or {})
+    return jsonify({"status": "liked"}), 201
+
+
+@main.route("/api/likes", methods=["DELETE"])
+def remove_like():
+    make_social_service().remove_like(request.get_json(silent=True) or {})
+    return jsonify({"status": "unliked"}), 200
+
+
+@main.route("/api/comments", methods=["POST"])
+def add_comment():
+    comment = make_social_service().add_comment(request.get_json(silent=True) or {})
+    return jsonify({"comment": comment.to_dict()}), 201
+
+
+@main.route("/api/submissions/<submission_id>/comments", methods=["GET"])
+def get_comments(submission_id):
+    comments = make_social_service().get_comments(submission_id)
+    return jsonify({"comments": [comment.to_dict() for comment in comments]})
+
+
+@main.route("/api/leaderboard", methods=["GET"])
+def get_leaderboard():
+    organization_id = _optional(request.args.get("organization_id"))
+    limit = min(max(1, int(request.args.get("limit", 10))), 50)
+    entries = make_social_service().get_leaderboard(organization_id, limit)
+    return jsonify({"leaderboard": entries})
 
 
 # --------------------------------------------------------------- user endpoints

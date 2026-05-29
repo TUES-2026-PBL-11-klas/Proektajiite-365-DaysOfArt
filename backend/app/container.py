@@ -2,20 +2,22 @@ from app.extensions import db
 from app.security import PasswordHasher
 from app.repositories import UserRepository, OrganizationRepository
 from app.repositories.prompt_repository import PromptRepository
+from app.repositories.social_repository import SocialRepository
 from app.repositories.submission_repository import SubmissionRepository
+from app.scheduler.prompt_scheduler import PromptScheduler
+from app.observers.interaction_tracker import InteractionTracker
+from app.observers.leaderboard_updater import LeaderboardUpdater
 from app.services import AuthService, UserService, OrganizationService
 from app.services.prompt_service import PromptService
 from app.services.recommendation_service import RecommendationService
+from app.services.social_service import SocialService
 from app.services.submission_service import SubmissionService
-from app.scheduler.prompt_scheduler import PromptScheduler
 
 _password_hasher = PasswordHasher()
 
 
 def build_services(session=None):
-    """Person 1's composition root. Wires repositories and services for auth,
-    profile and organization features. Routes call this instead of constructing
-    dependencies themselves."""
+    """Composition root for auth, profile and organization features."""
     session = session or db.session
     user_repo = UserRepository(session)
     org_repo = OrganizationRepository(session)
@@ -27,8 +29,6 @@ def build_services(session=None):
     }
 
 
-# Person 2's factories — kept here so prompt/submission routes don't need to
-# know about repository wiring.
 def make_prompt_service():
     return PromptService(PromptRepository())
 
@@ -43,6 +43,16 @@ def make_submission_repository():
 
 def make_recommendation_service():
     return RecommendationService(SubmissionRepository())
+
+
+def make_social_service():
+    social_repo = SocialRepository()
+    submission_repo = SubmissionRepository()
+    observers = [
+        LeaderboardUpdater(social_repo),
+        InteractionTracker(submission_repo),
+    ]
+    return SocialService(social_repo, observers=observers)
 
 
 def make_prompt_scheduler():

@@ -193,6 +193,40 @@ class SubmissionRepository:
     def calculate_interaction_scores(self):
         return self.get_interaction_matrix()
 
+    def record_interaction(self, user_id, submission_id, interaction_type, weight):
+        user_uuid = to_uuid(user_id)
+        submission_uuid = to_uuid(submission_id)
+        existing = UserInteraction.query.filter_by(
+            user_id=user_uuid,
+            submission_id=submission_uuid,
+        ).first()
+
+        if existing is None:
+            existing = UserInteraction(
+                user_id=user_uuid,
+                submission_id=submission_uuid,
+                like_score=0.0,
+                comment_score=0.0,
+                view_score=0.0,
+                total_score=0.0,
+            )
+            db.session.add(existing)
+
+        if interaction_type in {"like", "unlike"}:
+            existing.like_score = (existing.like_score or 0.0) + weight
+        elif interaction_type == "comment":
+            existing.comment_score = (existing.comment_score or 0.0) + weight
+        elif interaction_type == "view":
+            existing.view_score = (existing.view_score or 0.0) + weight
+
+        existing.total_score = (
+            (existing.like_score or 0.0)
+            + (existing.comment_score or 0.0)
+            + (existing.view_score or 0.0)
+        )
+        db.session.commit()
+        return existing
+
     def get_users_who_interacted_with(self, submission_id):
         return (
             db.session.query(UserInteraction.user_id, UserInteraction.total_score)
