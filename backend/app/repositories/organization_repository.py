@@ -1,4 +1,5 @@
 from app.models import Organization, UserOrganization
+from app.utils import to_uuid
 
 
 class OrganizationRepository:
@@ -9,7 +10,7 @@ class OrganizationRepository:
         self._session = session
 
     def get_by_id(self, organization_id):
-        return self._session.get(Organization, organization_id)
+        return self._session.get(Organization, to_uuid(organization_id))
 
     def list_all(self):
         return self._session.query(Organization).order_by(Organization.name).all()
@@ -23,13 +24,16 @@ class OrganizationRepository:
         self._session.delete(organization)
 
     def get_membership(self, user_id, organization_id):
-        return self._session.get(UserOrganization, (user_id, organization_id))
+        return self._session.get(
+            UserOrganization,
+            (to_uuid(user_id), to_uuid(organization_id)),
+        )
 
     def list_for_user(self, user_id):
         return (
             self._session.query(Organization)
             .join(UserOrganization, UserOrganization.organization_id == Organization.id)
-            .filter(UserOrganization.user_id == user_id)
+            .filter(UserOrganization.user_id == to_uuid(user_id))
             .order_by(Organization.name)
             .all()
         )

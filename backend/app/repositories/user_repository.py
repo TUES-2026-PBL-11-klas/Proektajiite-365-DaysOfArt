@@ -1,5 +1,6 @@
 from sqlalchemy import or_
 from app.models import User, Submission, Topic
+from app.utils import to_uuid
 
 
 class UserRepository:
@@ -10,7 +11,7 @@ class UserRepository:
         self._session = session
 
     def get_by_id(self, user_id):
-        return self._session.get(User, user_id)
+        return self._session.get(User, to_uuid(user_id))
 
     def get_by_email(self, email):
         return self._session.query(User).filter(User.email == email).first()
@@ -40,7 +41,7 @@ class UserRepository:
         return (
             self._session.query(Submission, Topic)
             .join(Topic, Submission.topic_id == Topic.id)
-            .filter(Submission.user_id == user_id)
+            .filter(Submission.user_id == to_uuid(user_id))
             .order_by(Submission.date.desc(), Submission.created_at.desc())
             .all()
         )

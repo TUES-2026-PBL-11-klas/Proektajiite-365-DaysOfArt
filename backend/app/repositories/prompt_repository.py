@@ -1,5 +1,4 @@
 from datetime import date
-from random import choice
 from uuid import UUID
 
 from ..extensions import db
@@ -51,7 +50,14 @@ class PromptRepository:
 
     def get_daily_prompt(self, organization_id=None, prompt_date=None):
         prompt_date = prompt_date or date.today()
-        topic = Topic.query.filter(Topic.used_on == prompt_date).first()
+        topic = (
+            Topic.query.filter(
+                Topic.is_used.is_(True),
+                Topic.used_on == prompt_date,
+            )
+            .order_by(Topic.created_at.asc(), Topic.id.asc())
+            .first()
+        )
         if topic is None:
             return None
         return DailyPromptView(topic, organization_id, prompt_date)
@@ -62,8 +68,7 @@ class PromptRepository:
         if excluded_prompt_ids:
             query = query.filter(Topic.id.notin_(excluded_prompt_ids))
 
-        prompts = query.all()
-        return choice(prompts) if prompts else None
+        return query.order_by(Topic.created_at.asc(), Topic.id.asc()).first()
 
     def save_daily_prompt(self, prompt, organization_id=None, prompt_date=None):
         prompt.is_used = True

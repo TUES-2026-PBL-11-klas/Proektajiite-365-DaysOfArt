@@ -1,5 +1,6 @@
 from datetime import date
 from app.models import Organization, UserOrganization
+from app.utils import to_uuid
 from app.exceptions import (
     OrganizationNotFoundError,
     UserNotFoundError,
@@ -117,7 +118,10 @@ class OrganizationService:
 
         self._check_age(user, org)
 
-        membership = UserOrganization(user_id=user_id, organization_id=organization_id)
+        membership = UserOrganization(
+            user_id=to_uuid(user_id),
+            organization_id=to_uuid(organization_id),
+        )
         self._orgs.add_membership(membership)
         self._orgs.commit()
         return org
