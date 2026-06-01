@@ -1,0 +1,22 @@
+# Dependencies / build output — rebuilt inside the image
+node_modules/
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Local config / secrets — provided via env at runtime
+.env
+.env.local
+.env.*.local
+
+# Editor / tooling
+.vscode/
+.idea/
+*.log
+
+# Docker / VCS
+Dockerfile
+.dockerignore
+.git/
+.gitignore
