@@ -110,9 +110,21 @@ class RecommendationService:
 
     def recalculate_scores(self):
         """Persist pre-computed recommendation scores for every user via user-user CF."""
+        # Seed a baseline score for every submission so new content has visibility
+        # before any likes or comments accumulate.
+        persisted = []
+        for submission in self.submission_repository.list_submissions():
+            persisted.append(
+                self.submission_repository.upsert_recommendation_score(
+                    str(submission.user_id),
+                    str(submission.id),
+                    self.DEFAULT_SUBMISSION_SCORE,
+                )
+            )
+
         rows = self.submission_repository.get_interaction_matrix()
         if not rows:
-            return []
+            return persisted
 
         user_vectors = defaultdict(dict)
         for row in rows:
@@ -120,7 +132,6 @@ class RecommendationService:
             if score > 0:
                 user_vectors[str(row.user_id)][str(row.submission_id)] = score
 
-        persisted = []
         for uid, target_vec in user_vectors.items():
             # Persist direct interaction scores so the feed reflects what the user engaged with
             for sub_id, score in target_vec.items():
