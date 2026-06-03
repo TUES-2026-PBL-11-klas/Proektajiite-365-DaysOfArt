@@ -51,7 +51,7 @@ kubectl port-forward -n days-of-art svc/frontend-service 3000:3000
 
 Open **http://localhost:3000**.
 
-> Note: the ingress uses `host: days-of-art.local`. For port-forward access you don't need to configure that.
+> Note: the ingress uses `host: days-of-art.local`. For port-forward access you don't need to configure that
 
 ---
 
@@ -81,6 +81,7 @@ Browser → http://localhost:3000
 ## CI/CD
 
 Every push to `main`:
+
 1. Runs backend tests and frontend lint
 2. Builds and pushes Docker images to GHCR
 3. On success — deploys to the Kubernetes cluster via Helm (CD workflow)
