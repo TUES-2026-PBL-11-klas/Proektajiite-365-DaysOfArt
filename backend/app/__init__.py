@@ -6,8 +6,12 @@ from dotenv import load_dotenv
 from sqlalchemy import inspect
 from app.extensions import db, jwt, revoked_tokens
 from app.exceptions import AppError
+from app.logging_config import setup_logging
+from app.metrics import register_metrics
 
 load_dotenv()
+
+logger = setup_logging(os.getenv("LOG_LEVEL", "INFO"))
 
 
 def _ensure_dev_schema(app):
@@ -134,5 +138,9 @@ def create_app(config=None):
 
     from .cli import register_cli
     register_cli(app)
+
+    if not app.config.get("TESTING"):
+        register_metrics(app)
+        logger.info("Application started", extra={"env": os.getenv("FLASK_ENV", "production")})
 
     return app

@@ -1,6 +1,7 @@
 from datetime import date
 
 from ..exceptions import NotFoundError, ValidationError
+from ..metrics import LIKE_COUNT
 
 
 class SocialService:
@@ -46,6 +47,7 @@ class SocialService:
             raise ValidationError("You can only like submissions from today")
         result = self.repo.add_like(user_id, submission_id)
         self._notify_like_added(user_id, submission_id)
+        LIKE_COUNT.labels(action="add").inc()
         return result
 
     def remove_like(self, payload):
@@ -58,6 +60,7 @@ class SocialService:
         self._validate_not_owner(submission, user_id)
         self.repo.remove_like(user_id, submission_id)
         self._notify_like_removed(user_id, submission_id)
+        LIKE_COUNT.labels(action="remove").inc()
 
     def get_like_status(self, submission_id, user_id=None):
         submission = self._get_submission_or_404(submission_id)

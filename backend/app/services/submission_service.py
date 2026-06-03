@@ -1,6 +1,7 @@
 from datetime import date
 
 from ..exceptions import NotFoundError, ValidationError
+from ..metrics import SUBMISSION_COUNT
 
 
 class SubmissionService:
@@ -37,10 +38,12 @@ class SubmissionService:
         if self.submission_repository.has_submission_for_org_today(user_id, organization_id):
             raise ValidationError("You have already submitted a drawing for this organization today")
 
-        return self.submission_repository.create_submission(
+        submission = self.submission_repository.create_submission(
             user_id=user_id,
             organization_id=organization_id,
             prompt_id=prompt_id,
             image_data=image_data,
             caption=payload.get("caption"),
         )
+        SUBMISSION_COUNT.inc()
+        return submission
