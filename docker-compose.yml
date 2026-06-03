@@ -1,19 +1,12 @@
-# Local development orchestration for 365 Days of Art.
+# docker compose up --build
 #
-#   docker compose up --build
-#
-# Backend  -> http://localhost:5001  (container port 5000)
-# Frontend -> http://localhost:3000
-#
-# The database is the remote Supabase instance configured in backend/.env
-# (DATABASE_URL). Redis runs as a local service for background jobs.
+# Frontend → http://localhost:3000
+# Backend  → http://localhost:5001
 
 services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -26,7 +19,6 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # Override so the app reaches the compose-network Redis, not localhost.
       REDIS_URL: redis://redis:6379/0
       FLASK_ENV: production
       PYTHONUNBUFFERED: "1"
@@ -45,9 +37,8 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        # Browser-side calls go to the host-exposed backend port.
-        NEXT_PUBLIC_API_URL: http://localhost:5001
+    environment:
+      BACKEND_URL: http://backend:5000
     ports:
       - "3000:3000"
     depends_on:

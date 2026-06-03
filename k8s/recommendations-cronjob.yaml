@@ -14,9 +14,8 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: recalculate-recommendations
-              image: ghcr.io/example/365-days-of-art-backend:latest
-              imagePullPolicy: IfNotPresent
-              workingDir: /app
+              image: ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-backend:latest
+              imagePullPolicy: Always
               command: ["flask", "--app", "run.py", "recalculate-recommendations"]
               envFrom:
                 - configMapRef:
@@ -27,3 +26,8 @@ spec:
                     secretKeyRef:
                       name: backend-secrets
                       key: database-url
+                - name: JWT_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: jwt-secret-key

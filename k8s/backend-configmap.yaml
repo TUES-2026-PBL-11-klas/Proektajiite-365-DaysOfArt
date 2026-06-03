@@ -7,3 +7,5 @@ data:
   FLASK_APP: run.py
   FLASK_ENV: production
   PYTHONUNBUFFERED: "1"
+  REDIS_URL: redis://redis-service:6379/0
+  JWT_EXPIRATION_HOURS: "24"
