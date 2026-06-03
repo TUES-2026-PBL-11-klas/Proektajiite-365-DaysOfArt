@@ -25,15 +25,15 @@ class SubmissionRepository:
 
     def upsert_recommendation_score(self, user_id, submission_id, score):
         existing = RecommendationScore.query.filter_by(
-            user_id=user_id, submission_id=submission_id
+            user_id=to_uuid(user_id), submission_id=to_uuid(submission_id)
         ).first()
         if existing:
             existing.score = score
             existing.computed_at = datetime.now(timezone.utc)
         else:
             existing = RecommendationScore(
-                user_id=user_id,
-                submission_id=submission_id,
+                user_id=to_uuid(user_id),
+                submission_id=to_uuid(submission_id),
                 score=score,
             )
             db.session.add(existing)
