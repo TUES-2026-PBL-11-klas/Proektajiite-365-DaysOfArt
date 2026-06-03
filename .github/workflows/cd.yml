@@ -8,54 +8,32 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Kubernetes
+    name: Deploy
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
-      packages: read
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: azure/setup-helm@v4
-        with:
-          version: v3.14.0
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Pull images built by CI
+      - name: Update image tags in Helm values
         run: |
-          docker pull ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-backend:${{ github.event.workflow_run.head_sha }}
-          docker pull ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-frontend:${{ github.event.workflow_run.head_sha }}
+          sed -i "s/tag: .*/tag: ${{ github.event.workflow_run.head_sha }}/g" \
+            helm/365-days-of-art/values.yaml
 
-      - name: Sync secrets to cluster
+      - name: Commit and push
         run: |
-          kubectl create namespace days-of-art --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create secret generic backend-secrets \
-            --from-literal=database-url="${{ secrets.DATABASE_URL }}" \
-            --from-literal=jwt-secret-key="${{ secrets.JWT_SECRET_KEY }}" \
-            --namespace days-of-art \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Apply static resources
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/backend-configmap.yaml
-          kubectl apply -f k8s/backend-service.yaml
-          kubectl apply -f k8s/frontend-configmap.yaml
-          kubectl apply -f k8s/frontend-service.yaml
-          kubectl apply -f k8s/ingress.yaml
-
-      - name: Deploy with Helm
-        run: |
-          helm upgrade --install 365-days-of-art ./helm/365-days-of-art \
-            --namespace days-of-art \
-            --set "backend.image.tag=${{ github.event.workflow_run.head_sha }}" \
-            --set "frontend.image.tag=${{ github.event.workflow_run.head_sha }}" \
-            --wait --timeout 5m
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/365-days-of-art/values.yaml
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: deploy ${{ github.event.workflow_run.head_sha }} [skip ci]"
+            git push
+          fi
 
       - name: Notify success
         if: success()

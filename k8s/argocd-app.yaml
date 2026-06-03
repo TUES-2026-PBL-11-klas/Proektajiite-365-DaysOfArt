@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: 365-days-of-art
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/TUES-2026-PBL-11-klas/Proektajiite-365-DaysOfArt.git
+    targetRevision: HEAD
+    path: helm/365-days-of-art
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: days-of-art
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

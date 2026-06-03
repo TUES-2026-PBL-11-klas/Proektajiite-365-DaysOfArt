@@ -82,6 +82,65 @@ Browser → http://localhost:3000
 
 Every push to `main`:
 
-1. Runs backend tests and frontend lint
-2. Builds and pushes Docker images to GHCR
-3. On success — deploys to the Kubernetes cluster via Helm (CD workflow)
+1. **CI** — runs backend tests and frontend lint
+2. **CI** — builds and pushes Docker images to GHCR tagged with the commit SHA
+3. **CD** — updates `helm/365-days-of-art/values.yaml` with the new image SHA and commits the change
+4. **ArgoCD** (running in the cluster) — detects the values.yaml change and deploys automatically
+
+### One-time ArgoCD setup (run once per machine)
+
+**1. Make the GHCR packages public** so the cluster can pull images without credentials:
+- GitHub → your profile → Packages → `365-days-of-art-backend` → Package settings → Change visibility → Public
+- Repeat for `365-days-of-art-frontend`
+
+**2. Install ArgoCD in the cluster:**
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl wait --namespace argocd --for=condition=available deployment/argocd-server --timeout=120s
+```
+
+**3. Apply static Kubernetes resources (services, configmaps, ingress, redis):**
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/backend-configmap.yaml
+kubectl apply -f k8s/backend-service.yaml
+kubectl apply -f k8s/frontend-configmap.yaml
+kubectl apply -f k8s/frontend-service.yaml
+kubectl apply -f k8s/ingress.yaml
+kubectl apply -f k8s/redis-deployment.yaml
+kubectl apply -f k8s/redis-service.yaml
+```
+
+**4. Create secrets:**
+```bash
+# Backend config secrets
+kubectl create secret generic backend-secrets \
+  --from-literal=database-url="<your DATABASE_URL>" \
+  --from-literal=jwt-secret-key="<your JWT_SECRET_KEY>" \
+  --namespace days-of-art
+
+# GHCR pull secret — create a PAT at GitHub → Settings → Developer settings
+# → Personal access tokens → read:packages scope
+kubectl create secret docker-registry ghcr-pull-secret \
+  --docker-server=ghcr.io \
+  --docker-username=<your-github-username> \
+  --docker-password=<your-PAT> \
+  --namespace days-of-art
+```
+
+**5. Register the ArgoCD Application:**
+```bash
+kubectl apply -f k8s/argocd-app.yaml
+```
+
+**6. Open the ArgoCD dashboard:**
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+Go to **https://localhost:8080** — get the initial admin password with:
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+
+After this one-time setup, every push to `main` that passes CI will automatically trigger a deploy visible in the ArgoCD UI.
