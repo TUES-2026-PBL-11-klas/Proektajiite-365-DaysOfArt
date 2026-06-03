@@ -90,10 +90,12 @@ Every push to `main`:
 ### One-time ArgoCD setup (run once per machine)
 
 **1. Make the GHCR packages public** so the cluster can pull images without credentials:
+
 - GitHub → your profile → Packages → `365-days-of-art-backend` → Package settings → Change visibility → Public
 - Repeat for `365-days-of-art-frontend`
 
 **2. Install ArgoCD in the cluster:**
+
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -101,6 +103,7 @@ kubectl wait --namespace argocd --for=condition=available deployment/argocd-serv
 ```
 
 **3. Apply static Kubernetes resources (services, configmaps, ingress, redis):**
+
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/backend-configmap.yaml
@@ -113,6 +116,7 @@ kubectl apply -f k8s/redis-service.yaml
 ```
 
 **4. Create secrets:**
+
 ```bash
 # Backend config secrets
 kubectl create secret generic backend-secrets \
@@ -130,17 +134,27 @@ kubectl create secret docker-registry ghcr-pull-secret \
 ```
 
 **5. Register the ArgoCD Application:**
+
 ```bash
 kubectl apply -f k8s/argocd-app.yaml
 ```
 
 **6. Open the ArgoCD dashboard:**
+
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
+
 Go to **https://localhost:8080** — get the initial admin password with:
+
 ```bash
 kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
 ```
 
 After this one-time setup, every push to `main` that passes CI will automatically trigger a deploy visible in the ArgoCD UI.
+
+To run the project automatically after the setup:
+
+```bash
+kubectl port-forward -n days-of-art svc/frontend-service 3000:3000
+```

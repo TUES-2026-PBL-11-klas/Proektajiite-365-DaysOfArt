@@ -1,14 +1,14 @@
 # Frontend — Next.js 16 (365 Days of Art)
 # Multi-stage build using Next's standalone output; serves on port 3000.
 
-# 1. Install dependencies
-FROM node:20-alpine AS deps
+# 1. Install dependencies — run natively on the builder platform to avoid QEMU crashes
+FROM --platform=$BUILDPLATFORM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# 2. Build the app
-FROM node:20-alpine AS builder
+# 2. Build the app — also runs natively; output is pure JS so it works on any arch
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
