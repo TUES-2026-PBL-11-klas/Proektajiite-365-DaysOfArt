@@ -15,11 +15,17 @@ from tests.fakes import FakeUserRepository, FakeOrganizationRepository, Store
 
 @pytest.fixture
 def app():
+    from sqlalchemy.pool import StaticPool
     from app import create_app
     from app.extensions import db
-    application = create_app(
-        {"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"}
-    )
+    application = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "SQLALCHEMY_ENGINE_OPTIONS": {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        },
+    })
     with application.app_context():
         db.create_all()
         yield application
