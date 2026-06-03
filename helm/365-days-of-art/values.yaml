@@ -1,9 +1,9 @@
 backend:
   image:
     repository: ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-backend
-    tag: 49502fac9dd5e8e95c1b3e3271d5aeba4432e8f4
+    tag: dcb097b41fbb95cb9eb1f16bd24b21f4ce5f786d
 
 frontend:
   image:
     repository: ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-frontend
-    tag: 49502fac9dd5e8e95c1b3e3271d5aeba4432e8f4
+    tag: dcb097b41fbb95cb9eb1f16bd24b21f4ce5f786d
