@@ -30,4 +30,8 @@ def create_app(config=None):
 
         db.create_all()
 
+    from app.metrics import register_metrics
+    register_metrics(app)
+    logger.info("App started", extra={"env": os.getenv("FLASK_ENV", "production")})
+
     return app
