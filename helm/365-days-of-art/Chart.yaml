@@ -1,0 +1,6 @@
+apiVersion: v2
+name: 365-days-of-art
+description: Full-stack art challenge platform (Flask backend + Next.js frontend)
+type: application
+version: 1.0.0
+appVersion: "1.0"

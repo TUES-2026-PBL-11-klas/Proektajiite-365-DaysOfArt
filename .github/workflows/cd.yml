@@ -1,0 +1,68 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+          echo "KUBECONFIG=${{ github.workspace }}/kubeconfig.yaml" >> "$GITHUB_ENV"
+
+      - name: Sync backend secrets to cluster
+        run: |
+          kubectl create namespace days-of-art --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic backend-secrets \
+            --from-literal=database-url="${{ secrets.DATABASE_URL }}" \
+            --from-literal=jwt-secret-key="${{ secrets.JWT_SECRET_KEY }}" \
+            --namespace days-of-art \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply static resources
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/backend-configmap.yaml
+          kubectl apply -f k8s/backend-service.yaml
+          kubectl apply -f k8s/frontend-configmap.yaml
+          kubectl apply -f k8s/frontend-service.yaml
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install 365-days-of-art ./helm/365-days-of-art \
+            --namespace days-of-art \
+            --set "backend.image.tag=${{ github.event.workflow_run.head_sha }}" \
+            --set "frontend.image.tag=${{ github.event.workflow_run.head_sha }}" \
+            --wait --timeout 5m
+
+      - name: Notify success
+        if: success()
+        run: |
+          [ -n "${{ secrets.WEBHOOK_URL }}" ] && curl -s -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"🚀 Deployed \`${{ github.repository }}\` @ \`${{ github.event.workflow_run.head_sha }}\` to production\"}" || true
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          [ -n "${{ secrets.WEBHOOK_URL }}" ] && curl -s -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"💥 Deployment failed for \`${{ github.repository }}\` @ \`${{ github.event.workflow_run.head_sha }}\`\"}" || true
