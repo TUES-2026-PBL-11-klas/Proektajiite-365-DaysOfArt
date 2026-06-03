@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from app.extensions import db
-from app.models import Organization, User
+from app.models import Organization, User, UserOrganization
 from app.repositories.prompt_repository import PromptRepository
 
 
@@ -17,6 +17,8 @@ def create_user_and_organization(username="artist", email="artist@example.com"):
     user = User(username=username, email=email, password_hash="hash")
     organization = Organization(name=f"{username} organization")
     db.session.add_all([user, organization])
+    db.session.flush()
+    db.session.add(UserOrganization(user_id=user.id, organization_id=organization.id))
     db.session.commit()
     return str(user.id), str(organization.id)
 

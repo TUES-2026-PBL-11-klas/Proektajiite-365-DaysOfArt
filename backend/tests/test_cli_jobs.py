@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from app.extensions import db
-from app.models import Organization, RecommendationScore, Topic, User
+from app.models import Organization, RecommendationScore, Topic, User, UserOrganization
 from app.repositories.prompt_repository import PromptRepository
 
 
@@ -21,6 +21,8 @@ def create_user_and_organization():
     )
     organization = Organization(name="Teen artists", min_age=13, max_age=19)
     db.session.add_all([user, organization])
+    db.session.flush()
+    db.session.add(UserOrganization(user_id=user.id, organization_id=organization.id))
     db.session.commit()
     return user, organization
 

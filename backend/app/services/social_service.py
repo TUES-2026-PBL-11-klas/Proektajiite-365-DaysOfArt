@@ -42,6 +42,8 @@ class SocialService:
 
         submission = self._get_submission_or_404(submission_id)
         self._validate_not_owner(submission, user_id)
+        if submission.date != date.today():
+            raise ValidationError("You can only like submissions from today")
         result = self.repo.add_like(user_id, submission_id)
         self._notify_like_added(user_id, submission_id)
         return result
