@@ -18,9 +18,8 @@ class InteractionTracker(LikeObserver):
             interaction_type=interaction_type,
             weight=weight,
         )
-        score = float(interaction.total_score or 0.0)
-        if score > 0:
-            self._repo.upsert_recommendation_score(user_id, submission_id, score)
+        score = max(float(interaction.total_score or 0.0), 0.0)
+        self._repo.upsert_recommendation_score(user_id, submission_id, score)
 
     def on_like_added(self, user_id: str, submission_id: str) -> None:
         try:
