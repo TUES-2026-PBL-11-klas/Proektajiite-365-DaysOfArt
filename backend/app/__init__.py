@@ -93,6 +93,10 @@ def create_app(config=None):
         "DATABASE_URL", "sqlite:///365_days_of_art.db"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+    }
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-change-me")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
         hours=int(os.getenv("JWT_EXPIRATION_HOURS", "24"))

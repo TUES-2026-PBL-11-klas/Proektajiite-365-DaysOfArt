@@ -128,7 +128,7 @@ kubectl create secret generic backend-secrets \
 # → Personal access tokens → read:packages scope
 kubectl create secret docker-registry ghcr-pull-secret \
   --docker-server=ghcr.io \
-  --docker-username=<your-github-username> \
+  --docker-username=<your-username> \
   --docker-password=<your-PAT> \
   --namespace days-of-art
 ```
