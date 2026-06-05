@@ -18,7 +18,7 @@ spec:
       containers:
         - name: backend
           image: ghcr.io/tues-2026-pbl-11-klas/365-days-of-art-backend:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
@@ -29,12 +29,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: backend-secrets
-                  key: database-url
+                  key: DATABASE_URL
             - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: backend-secrets
-                  key: jwt-secret-key
+                  key: JWT_SECRET_KEY
           readinessProbe:
             httpGet:
               path: /api/health
